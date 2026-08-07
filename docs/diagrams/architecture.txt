@@ -1,0 +1,21 @@
+SothForge API - Architecture Overview
+===================================
+
+Client
+  |
+  v
+NestJS API
+  |-- Auth Module
+  |-- Users Module
+  |-- Organizations Module
+  |-- Projects Module
+  |-- Boards Module
+  |-- Tasks Module
+  |-- Comments Module
+  |-- Labels Module
+  |-- Common / Config / Prisma
+  |
+  +--> PostgreSQL
+  +--> Redis
+  +--> Swagger Docs
+  +--> Docker Compose

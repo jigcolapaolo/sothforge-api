@@ -1,0 +1,21 @@
+SothForge API - Auth Flow
+==========================
+
+1. Register
+   User -> API /auth/register
+   API -> DB (create user)
+
+2. Login
+   User -> API /auth/login
+   API -> Validate credentials
+   API -> Generate Access Token + Refresh Token
+
+3. Protected Request
+   Client -> API + Access Token
+   API -> Validate JWT via Guard
+   API -> Allow / Deny access
+
+4. Refresh Session
+   Client -> API /auth/refresh + Refresh Token
+   API -> Validate refresh token
+   API -> Issue new Access Token

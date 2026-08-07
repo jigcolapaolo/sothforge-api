@@ -1,0 +1,184 @@
+CRITERIOS DE ACEPTACION POR FEATURES - SOTHFORGE API
+====================================================
+
+Objetivo:
+Este archivo define criterios de aceptacion funcionales para cada feature del MVP, basados en el README actualizado y en la especificacion del proyecto.
+
+------------------------------------------------------------
+1. FEATURE: AUTENTICACION Y REGISTRO
+------------------------------------------------------------
+Criterio general:
+- El sistema permite registrar usuarios y autenticarlos correctamente.
+
+Criterios de aceptacion:
+- Un usuario puede registrarse con email, username y password validos.
+- La contrasena se almacena de forma segura mediante hashing.
+- Un usuario puede iniciar sesion correctamente con credenciales validas.
+- El sistema devuelve un Access Token y un Refresh Token al iniciar sesion.
+- El Refresh Token puede utilizarse para renovar la sesion.
+- Si las credenciales son invalidas, el sistema devuelve un error claro y consistente.
+- Los endpoints sensibles requieren autenticacion.
+
+------------------------------------------------------------
+2. FEATURE: GESTION DE USUARIOS
+------------------------------------------------------------
+Criterio general:
+- El sistema permite gestionar la informacion basica del usuario autenticado.
+
+Criterios de aceptacion:
+- Un usuario puede consultar su propio perfil.
+- Un usuario puede actualizar su perfil basico.
+- Un usuario puede cambiar su password si proporciona los datos correctos.
+- Los cambios del usuario se reflejan correctamente en la base de datos.
+- Las operaciones no autorizadas son rechazadas.
+
+------------------------------------------------------------
+3. FEATURE: GESTION DE ORGANIZACIONES
+------------------------------------------------------------
+Criterio general:
+- El sistema permite crear y administrar organizaciones colaborativas.
+
+Criterios de aceptacion:
+- Un usuario puede crear una organizacion con nombre y descripcion validos.
+- Una organizacion puede consultarse, editarse y eliminarse segun permisos.
+- Cada organizacion puede tener varios miembros.
+- La organizacion cuenta con al menos un Owner al crearse.
+- No se permite eliminar el ultimo Owner.
+- Solo miembros autorizados pueden acceder a los recursos de la organizacion.
+
+------------------------------------------------------------
+4. FEATURE: GESTION DE MIEMBROS DE ORGANIZACION
+------------------------------------------------------------
+Criterio general:
+- El sistema permite administrar miembros dentro de una organizacion.
+
+Criterios de aceptacion:
+- Un Owner o Admin puede agregar miembros a una organizacion.
+- Se pueden asignar roles como Owner, Admin, Member o Viewer.
+- Un miembro puede ser actualizado o removido si el usuario tiene permisos.
+- Los roles se aplican correctamente en las reglas de acceso.
+- Un usuario fuera de la organizacion no puede acceder a sus recursos.
+
+------------------------------------------------------------
+5. FEATURE: GESTION DE PROYECTOS
+------------------------------------------------------------
+Criterio general:
+- El sistema permite crear y administrar proyectos dentro de una organizacion.
+
+Criterios de aceptacion:
+- Un proyecto puede crearse dentro de una organizacion valida.
+- Un proyecto puede consultarse, editarse y eliminarse si el usuario tiene permisos.
+- El proyecto queda asociado correctamente a la organizacion correspondiente.
+- Los usuarios que no pertenecen a la organizacion no pueden gestionar el proyecto.
+- El proyecto puede ser identificado de forma unica dentro del contexto de la organizacion.
+
+------------------------------------------------------------
+6. FEATURE: GESTION DE BOARDS
+------------------------------------------------------------
+Criterio general:
+- El sistema permite organizar el trabajo en boards relacionados con un proyecto.
+
+Criterios de aceptacion:
+- Un board puede crearse dentro de un proyecto valido.
+- Un board puede consultarse, editarse y eliminarse.
+- El board queda vinculado correctamente al proyecto correspondiente.
+- Solo usuarios autorizados pueden crear o modificar boards.
+- Un board no puede existir fuera del contexto de un proyecto.
+
+------------------------------------------------------------
+7. FEATURE: GESTION DE TASKS
+------------------------------------------------------------
+Criterio general:
+- El sistema permite crear y administrar tareas dentro de un board.
+
+Criterios de aceptacion:
+- Una tarea puede crearse dentro de un board valido.
+- La tarea puede consultarse, editarse y eliminarse.
+- La tarea incluye campos como titulo, descripcion, estado, prioridad, dueDate y estimatedHours.
+- La tarea puede asignarse a usuarios miembros de la organizacion.
+- La tarea no puede asignarse a usuarios que no pertenezcan a la organizacion.
+- El estado y la prioridad de la tarea pueden cambiarse correctamente.
+
+------------------------------------------------------------
+8. FEATURE: BUSQUEDA, FILTROS, ORDENAMIENTO Y PAGINACION
+------------------------------------------------------------
+Criterio general:
+- El sistema permite encontrar tareas de forma eficiente mediante consultas avanzadas.
+
+Criterios de aceptacion:
+- Se pueden aplicar filtros por status, priority, assignedUser, label y project.
+- Se pueden buscar tareas por title y description.
+- Se puede ordenar por createdAt, priority o dueDate.
+- La paginacion funciona con parametros como page y limit.
+- Los resultados devueltos son consistentes y coherentes con los filtros aplicados.
+
+------------------------------------------------------------
+9. FEATURE: COMENTARIOS EN TASKS
+------------------------------------------------------------
+Criterio general:
+- El sistema permite agregar comentarios a las tareas.
+
+Criterios de aceptacion:
+- Un usuario puede agregar un comentario a una tarea existente.
+- El comentario queda asociado correctamente a la tarea.
+- El comentario puede editarse o eliminarse si el usuario tiene permisos.
+- Un usuario fuera de la organizacion no puede manipular comentarios de sus tareas.
+
+------------------------------------------------------------
+10. FEATURE: LABELS O ETIQUETAS
+------------------------------------------------------------
+Criterio general:
+- El sistema permite categorizar tareas con etiquetas reutilizables.
+
+Criterios de aceptacion:
+- Se pueden crear etiquetas reutilizables para una organizacion o contexto valido.
+- Una etiqueta puede asignarse a una o varias tareas.
+- La etiqueta puede editarse o eliminarse sin romper la integridad del sistema.
+- Los filtros por etiqueta funcionan correctamente.
+
+------------------------------------------------------------
+11. FEATURE: ROLES Y PERMISOS
+------------------------------------------------------------
+Criterio general:
+- El sistema aplica permisos segun el rol del usuario dentro de la organizacion.
+
+Criterios de aceptacion:
+- Owner puede realizar operaciones de administracion y eliminacion segun reglas.
+- Admin puede gestionar recursos y tareas dentro de la organizacion.
+- Member puede modificar tareas asignadas y participar en el flujo de trabajo.
+- Viewer solo tiene permisos de lectura.
+- Un usuario sin permisos recibe un error de autorizacion claro.
+
+------------------------------------------------------------
+12. FEATURE: VALIDACIONES Y RESPUESTAS DE ERROR
+------------------------------------------------------------
+Criterio general:
+- El sistema valida correctamente las entradas y responde con errores claros.
+
+Criterios de aceptacion:
+- Los DTOs validan datos de entrada obligatorios, formatos y tipos.
+- Los errores de validacion se devuelven de forma comprensible.
+- Los errores de negocio se traducen en respuestas HTTP coherentes.
+- Los errores de recursos no encontrados, conflictos y permisos son manejados correctamente.
+
+------------------------------------------------------------
+13. FEATURE: DOCUMENTACION DE API
+------------------------------------------------------------
+Criterio general:
+- La API queda documentada de forma accesible para desarrolladores.
+
+Criterios de aceptacion:
+- Swagger queda habilitado y accesible desde la aplicacion.
+- Los endpoints principales aparecen documentados con descripcion y parametros.
+- Los esquemas de DTOs y respuestas se muestran correctamente.
+- La autenticacion JWT queda documentada de forma clara.
+
+------------------------------------------------------------
+CRITERIOS GENERALES DE TERMINACION DE UNA FEATURE
+------------------------------------------------------------
+Una feature se considera completada cuando:
+- Implementa el flujo funcional esperado.
+- Responde correctamente a escenarios validos e invalidos.
+- Aplica las reglas de negocio definidas en el README.
+- Se puede probar con una solicitud real o con tests.
+- No deja ambiguedad sobre si la feature funciona o no.
