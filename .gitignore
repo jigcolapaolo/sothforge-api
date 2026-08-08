@@ -1,24 +1,52 @@
 # Nestjs specific
+
 /dist
 /node_modules
 /build
 /tmp
 
 # Logs
+
 logs
-*.log
-npm-debug.log*
+*.log*
+*npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
 # dotenv environment variable files
+
 .env
 .env.development
 .env.test
 .env.production
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
 
 # temp directory
+
 .temp
 .tmp
+
+# Prisma
+
+prisma/*.db
+prisma/*.db-journal
+
+# Testing
+
+/coverage
+
+# IDE
+
+.vscode/
+.idea/
+
+# OS
+
+.DS_Store
+Thumbs.db

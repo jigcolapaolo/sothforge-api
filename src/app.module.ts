@@ -9,11 +9,28 @@ import { BoardsModule } from './boards/boards.module';
 import { TasksModule } from './tasks/tasks.module';
 import { CommentsModule } from './comments/comments.module';
 import { LabelsModule } from './labels/labels.module';
-import { NotificationsModule } from './notifications/notifications.module';
-import { DatabaseModule } from './database/prisma.module';
+import { PrismaModule } from './database/prisma.module';
+import { ConfigModule } from '@nestjs/config';
+import configuration from './config/configuration';
+import { envValidationSchema } from './config/env.validation';
 
 @Module({
-  imports: [AuthModule, UsersModule, OrganizationsModule, ProjectsModule, BoardsModule, TasksModule, CommentsModule, LabelsModule, NotificationsModule, DatabaseModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [configuration],
+      validationSchema: envValidationSchema,
+    }),
+    AuthModule,
+    UsersModule,
+    OrganizationsModule,
+    ProjectsModule,
+    BoardsModule,
+    TasksModule,
+    CommentsModule,
+    LabelsModule,
+    PrismaModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
