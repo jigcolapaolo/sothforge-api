@@ -15,7 +15,7 @@ NestJS API
   |-- Labels Module
   |-- Common / Config / Prisma
   |
-  +--> PostgreSQL
+  +--> PostgreSQL/Neon
   +--> Redis
   +--> Swagger Docs
   +--> Docker Compose

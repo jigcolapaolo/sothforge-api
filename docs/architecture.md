@@ -35,7 +35,8 @@ El sistema se compone de los siguientes niveles:
    - Redis para cache, rate limiting o control de sesiones.
 
 5. Infrastructure Layer
-   - Docker Compose para levantar API, PostgreSQL y Redis.
+   - Docker Compose para levantar API y Redis en el entorno local.
+   - PostgreSQL alojado en Neon.
    - Variables de entorno para configuracion.
 
 ## 4. Componentes principales
@@ -82,7 +83,6 @@ src/
   labels/
   common/
   config/
-  prisma/
   database/
 ```
 
@@ -114,8 +114,8 @@ Si solo hay un archivo, no se crea su carpeta especifica
 
 ## 7. Integraciones externas
 
-- PostgreSQL como base de datos principal.
-- Redis para cache y control de sesiones.
+- PostgreSQL/Neon como base de datos principal.
+- Redis para cache, rate limiting o control de sesiones.
 - Docker para entornos reproducibles.
 - Swagger para documentacion.
 - Postman para pruebas manuales.
