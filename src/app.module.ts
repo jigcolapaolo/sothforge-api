@@ -13,6 +13,7 @@ import { PrismaModule } from './database/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import configuration from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -21,6 +22,8 @@ import { envValidationSchema } from './config/env.validation';
       load: [configuration],
       validationSchema: envValidationSchema,
     }),
+    PrismaModule,
+    RedisModule,
     AuthModule,
     UsersModule,
     OrganizationsModule,
@@ -29,7 +32,6 @@ import { envValidationSchema } from './config/env.validation';
     TasksModule,
     CommentsModule,
     LabelsModule,
-    PrismaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
