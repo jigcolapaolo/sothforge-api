@@ -39,6 +39,7 @@ Relaciones:
 
 * Tiene muchos miembros.
 * Tiene muchos proyectos.
+* Tiene muchas labels propias
 
 ### OrganizationMember
 
