@@ -9,7 +9,7 @@ export const envValidationSchema = Joi.object({
 
   DATABASE_URL: Joi.string().uri().required(),
 
-  // JWT_SECRET: Joi.string().min(32).required(),
+  JWT_SECRET: Joi.string().min(32).required(),
   // JWT_REFRESH_SECRET: Joi.string().min(32).required(),
 
   REDIS_URL: Joi.string().uri().required(),

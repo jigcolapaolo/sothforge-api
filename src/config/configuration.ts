@@ -6,7 +6,7 @@ export default () => ({
   redis: {
     url: process.env.REDIS_URL,
   },
-  // jwt: {
-  //   secret: process.env.JWT_SECRET,
-  // },
+  jwt: {
+    secret: process.env.JWT_SECRET,
+  },
 });
