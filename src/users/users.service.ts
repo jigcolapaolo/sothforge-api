@@ -1,5 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/database/prisma.service';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { Prisma } from 'src/generated/prisma/client';
+import { userPublicSelect } from './constants/user-select';
 
 @Injectable()
 export class UsersService {
@@ -9,15 +12,7 @@ export class UsersService {
   async findById(id: string) {
     return this.prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        avatar: true,
-        createdAt: true,
-        updatedAt: true,
-        lastLogin: true,
-      },
+      select: userPublicSelect,
     });
   }
 
@@ -28,14 +23,22 @@ export class UsersService {
     });
   }
 
-  async create(data: {
-    username: string;
-    email: string;
-    passwordHash: string;
-    avatar?: string;
-  }) {
-    return this.prisma.user.create({
-      data,
-    });
+  async update(id: string, dto: UpdateUserDto) {
+    try {
+      return await this.prisma.user.update({
+        where: { id },
+        data: dto,
+        select: userPublicSelect,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Username or email already exists.');
+      }
+
+      throw error;
+    }
   }
 }

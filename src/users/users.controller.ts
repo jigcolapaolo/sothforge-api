@@ -1,8 +1,9 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('users')
 export class UsersController {
@@ -12,5 +13,14 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   getProfile(@CurrentUser() user: AuthenticatedUser) {
     return this.usersService.findById(user.userId);
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  updateProfile(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateUserDto,
+  ) {
+    return this.usersService.update(user.userId, dto);
   }
 }
