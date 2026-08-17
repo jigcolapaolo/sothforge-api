@@ -14,6 +14,8 @@ import { ConfigModule } from '@nestjs/config';
 import configuration from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
 import { RedisModule } from './redis/redis.module';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -22,6 +24,12 @@ import { RedisModule } from './redis/redis.module';
       load: [configuration],
       validationSchema: envValidationSchema,
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000, // 1 min
+        limit: 20, // 20 requests Max.
+      },
+    ]),
     PrismaModule,
     RedisModule,
     AuthModule,
@@ -34,6 +42,6 @@ import { RedisModule } from './redis/redis.module';
     LabelsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
