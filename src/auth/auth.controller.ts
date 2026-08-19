@@ -19,11 +19,17 @@ import { RolesGuard } from './guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import { Throttle } from '@nestjs/throttler';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @ApiOperation({ summary: 'Register a new user' })
+  @ApiResponse({ status: 201, description: 'User successfully registered' })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  @ApiResponse({ status: 409, description: 'Username or email already in use' })
   @Throttle({
     default: {
       limit: 5,
@@ -35,6 +41,11 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
+  @ApiOperation({ summary: 'Login user' })
+  @ApiResponse({ status: 201, description: 'Authentication successful' })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
   @Throttle({
     default: {
       limit: 5,
@@ -46,6 +57,10 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiResponse({ status: 201, description: 'Tokens successfully refreshed' })
+  @ApiResponse({ status: 401, description: 'Invalid refresh token' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
   @Throttle({
     default: {
       limit: 10,
@@ -58,6 +73,9 @@ export class AuthController {
   }
 
   // Revoca la sesion actual
+  @ApiOperation({ summary: 'Revoke current session' })
+  @ApiResponse({ status: 204, description: 'Session successfully revoked' })
+  @ApiResponse({ status: 401, description: 'Invalid refresh token' })
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   logout(@Body() refreshTokenDto: RefreshTokenDto) {
@@ -65,6 +83,12 @@ export class AuthController {
   }
 
   // Revoca todas las sesiones de usuario
+  @ApiOperation({ summary: 'Revoke all user sessions' })
+  @ApiResponse({
+    status: 204,
+    description: 'All sessions successfully revoked',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   @Post('logout-all')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -72,13 +96,13 @@ export class AuthController {
     return this.authService.logoutAll(user.userId);
   }
 
-  @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
-  @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
-  @Get('test-organization/:organizationId')
-  testOrganization(@CurrentUser() user: AuthenticatedUser) {
-    return {
-      message: 'Authorization successful',
-      user,
-    };
-  }
+  // @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
+  // @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
+  // @Get('test-organization/:organizationId')
+  // testOrganization(@CurrentUser() user: AuthenticatedUser) {
+  //   return {
+  //     message: 'Authorization successful',
+  //     user,
+  //   };
+  // }
 }
