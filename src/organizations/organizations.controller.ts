@@ -1,4 +1,20 @@
-import { Controller } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { CreateOrganizationDto } from './dto/create-organization.dto';
+import { OrganizationsService } from './organizations.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('organizations')
-export class OrganizationsController {}
+export class OrganizationsController {
+  constructor(private readonly organizationsService: OrganizationsService) {}
+
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateOrganizationDto,
+  ) {
+    return this.organizationsService.create(user.userId, dto);
+  }
+}
