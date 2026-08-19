@@ -6,6 +6,11 @@ import { createClient, RedisClientType } from 'redis';
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly client: RedisClientType;
 
+  // Para rate limiting, exponiendo el client
+  getClient(): RedisClientType {
+    return this.client;
+  }
+
   constructor(private readonly configService: ConfigService) {
     const url = this.configService.get<string>('redis.url');
 
@@ -47,7 +52,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    await this.client.connect();
+    // await this.client.connect();
   }
 
   async onModuleDestroy() {
