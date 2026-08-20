@@ -55,4 +55,19 @@ export class OrganizationsService {
       return organization;
     });
   }
+
+  async findAllByUser(userId: string) {
+    return this.prisma.organization.findMany({
+      where: {
+        members: {
+          some: {
+            userId,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
 }

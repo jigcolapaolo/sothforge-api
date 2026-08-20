@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
@@ -16,5 +16,11 @@ export class OrganizationsController {
     @Body() dto: CreateOrganizationDto,
   ) {
     return this.organizationsService.create(user.userId, dto);
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  findAll(@CurrentUser() user: AuthenticatedUser) {
+    return this.organizationsService.findAllByUser(user.userId);
   }
 }
