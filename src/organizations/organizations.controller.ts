@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { OrganizationsService } from './organizations.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { OrganizationGuard } from 'src/auth/guards/organization.guard';
 
 @Controller('organizations')
 export class OrganizationsController {
@@ -22,5 +23,11 @@ export class OrganizationsController {
   @UseGuards(JwtAuthGuard)
   findAll(@CurrentUser() user: AuthenticatedUser) {
     return this.organizationsService.findAllByUser(user.userId);
+  }
+
+  @Get(':organizationId')
+  @UseGuards(JwtAuthGuard, OrganizationGuard)
+  findOne(@Param('organizationId') organizationId: string) {
+    return this.organizationsService.findOne(organizationId);
   }
 }
