@@ -20,6 +20,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
+import { CreateMemberDto } from './dto/create-member.dto';
 
 @Controller('organizations')
 export class OrganizationsController {
@@ -65,5 +66,17 @@ export class OrganizationsController {
   @Roles(OrganizationRole.OWNER)
   remove(@Param('organizationId') organizationId: string) {
     return this.organizationsService.remove(organizationId);
+  }
+
+  // Members
+
+  @Post(':organizationId/members')
+  @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
+  @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
+  createMember(
+    @Param('organizationId') organizationId: string,
+    @Body() dto: CreateMemberDto,
+  ) {
+    return this.organizationsService.createMember(organizationId, dto);
   }
 }

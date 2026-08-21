@@ -1,8 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/database/prisma.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
+import { CreateMemberDto } from './dto/create-member.dto';
 
 @Injectable()
 export class OrganizationsService {
@@ -92,6 +97,55 @@ export class OrganizationsService {
     await this.prisma.organization.delete({
       where: {
         id: organizationId,
+      },
+    });
+  }
+
+  async createMember(organizationId: string, dto: CreateMemberDto) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: dto.userId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const existingMembership = await this.prisma.organizationMember.findUnique({
+      where: {
+        userId_organizationId: {
+          userId: dto.userId,
+          organizationId,
+        },
+      },
+    });
+
+    if (existingMembership) {
+      throw new ConflictException('User already belongs to this organization.');
+    }
+
+    return this.prisma.organizationMember.create({
+      data: {
+        userId: dto.userId,
+        organizationId,
+        role: OrganizationRole.VIEWER,
+      },
+      select: {
+        id: true,
+        role: true,
+        joinedAt: true,
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            avatar: true,
+          },
+        },
       },
     });
   }
