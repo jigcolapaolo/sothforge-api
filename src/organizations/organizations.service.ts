@@ -30,26 +30,51 @@ export class OrganizationsService {
   }
 
   async findAllByUser(userId: string) {
-    return this.prisma.organization.findMany({
+    const memberships = await this.prisma.organizationMember.findMany({
       where: {
-        members: {
-          some: {
-            userId,
-          },
-        },
+        userId,
+      },
+      select: {
+        role: true,
+        joinedAt: true,
+        organization: true,
       },
       orderBy: {
-        createdAt: 'desc',
+        joinedAt: 'desc',
       },
     });
+
+    return memberships.map(({ role, joinedAt, organization }) => ({
+      ...organization,
+      role,
+      joinedAt,
+    }));
   }
 
-  async findOne(organizationId: string) {
-    return this.prisma.organization.findUnique({
+  async findOne(organizationId: string, userId: string) {
+    const membership = await this.prisma.organizationMember.findUnique({
       where: {
-        id: organizationId,
+        userId_organizationId: {
+          userId,
+          organizationId,
+        },
+      },
+      select: {
+        role: true,
+        joinedAt: true,
+        organization: true,
       },
     });
+
+    if (!membership) {
+      return null;
+    }
+
+    return {
+      ...membership.organization,
+      role: membership.role,
+      joinedAt: membership.joinedAt,
+    };
   }
 
   async update(organizationId: string, dto: UpdateOrganizationDto) {

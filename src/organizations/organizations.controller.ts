@@ -42,8 +42,11 @@ export class OrganizationsController {
 
   @Get(':organizationId')
   @UseGuards(JwtAuthGuard, OrganizationGuard)
-  findOne(@Param('organizationId') organizationId: string) {
-    return this.organizationsService.findOne(organizationId);
+  findOne(
+    @Param('organizationId') organizationId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.organizationsService.findOne(organizationId, user.userId);
   }
 
   @Patch(':organizationId')
