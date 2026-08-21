@@ -2,35 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/database/prisma.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { OrganizationRole } from 'src/generated/prisma/enums';
+import { UpdateOrganizationDto } from './dto/update-organization.dto';
 
-/* 
-model Organization {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  members  OrganizationMember[]
-  projects Project[]
-  labels   Label[]
-}
-
-model OrganizationMember {
-  id             String           @id @default(uuid())
-  userId         String
-  organizationId String
-  role           OrganizationRole
-  joinedAt       DateTime         @default(now())
-
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  // Un usuario no puede pertenecer dos veces a la misma organización
-  @@unique([userId, organizationId])
-  @@index([organizationId])
-}
-*/
 @Injectable()
 export class OrganizationsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -73,6 +46,25 @@ export class OrganizationsService {
 
   async findOne(organizationId: string) {
     return this.prisma.organization.findUnique({
+      where: {
+        id: organizationId,
+      },
+    });
+  }
+
+  async update(organizationId: string, dto: UpdateOrganizationDto) {
+    return this.prisma.organization.update({
+      where: {
+        id: organizationId,
+      },
+      data: {
+        ...dto,
+      },
+    });
+  }
+
+  async remove(organizationId: string) {
+    await this.prisma.organization.delete({
       where: {
         id: organizationId,
       },
