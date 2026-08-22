@@ -296,4 +296,34 @@ export class OrganizationsService {
       },
     });
   }
+
+  async leaveOrganization(userId: string, organizationId: string) {
+    const membership = await this.prisma.organizationMember.findUnique({
+      where: {
+        userId_organizationId: {
+          userId,
+          organizationId,
+        },
+      },
+    });
+
+    if (!membership) {
+      throw new NotFoundException('User does not belong to this organization');
+    }
+
+    if (membership.role === OrganizationRole.OWNER) {
+      throw new ForbiddenException(
+        'Owner must transfer ownership before leaving the organization',
+      );
+    }
+
+    await this.prisma.organizationMember.delete({
+      where: {
+        userId_organizationId: {
+          userId,
+          organizationId,
+        },
+      },
+    });
+  }
 }

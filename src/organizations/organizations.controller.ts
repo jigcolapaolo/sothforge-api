@@ -102,6 +102,19 @@ export class OrganizationsController {
     );
   }
 
+  @Delete(':organizationId/members/me')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, OrganizationGuard)
+  leaveOrganization(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('organizationId') organizationId: string,
+  ) {
+    return this.organizationsService.leaveOrganization(
+      user.userId,
+      organizationId,
+    );
+  }
+
   @Delete(':organizationId/members/:userId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
