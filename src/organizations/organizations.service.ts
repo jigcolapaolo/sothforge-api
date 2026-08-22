@@ -256,4 +256,44 @@ export class OrganizationsService {
       },
     });
   }
+
+  async removeMember(
+    organizationId: string,
+    userId: string,
+    currentUserId: string,
+  ) {
+    if (userId === currentUserId) {
+      throw new ForbiddenException(
+        'You cannot remove yourself using this endpoint',
+      );
+    }
+
+    const membership = await this.prisma.organizationMember.findUnique({
+      where: {
+        userId_organizationId: {
+          userId,
+          organizationId,
+        },
+      },
+    });
+
+    if (!membership) {
+      throw new NotFoundException('User does not belong to this organization');
+    }
+
+    if (membership.role === OrganizationRole.OWNER) {
+      throw new ForbiddenException(
+        'Owner cannot be removed from the organization',
+      );
+    }
+
+    await this.prisma.organizationMember.delete({
+      where: {
+        userId_organizationId: {
+          userId,
+          organizationId,
+        },
+      },
+    });
+  }
 }

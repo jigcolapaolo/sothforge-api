@@ -101,4 +101,20 @@ export class OrganizationsController {
       dto,
     );
   }
+
+  @Delete(':organizationId/members/:userId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
+  @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
+  removeMember(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('organizationId') organizationId: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.organizationsService.removeMember(
+      organizationId,
+      userId,
+      user.userId,
+    );
+  }
 }
