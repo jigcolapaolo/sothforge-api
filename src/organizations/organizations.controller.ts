@@ -81,6 +81,12 @@ export class OrganizationsController {
     return this.organizationsService.createMember(organizationId, dto);
   }
 
+  @Get(':organizationId/members')
+  @UseGuards(JwtAuthGuard, OrganizationGuard)
+  getMembers(@Param('organizationId') organizationId: string) {
+    return this.organizationsService.getMembers(organizationId);
+  }
+
   @Patch(':organizationId/members/:userId')
   @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
   @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)

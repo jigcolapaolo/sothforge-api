@@ -45,18 +45,31 @@ export class OrganizationsService {
       select: {
         role: true,
         joinedAt: true,
-        organization: true,
+        organization: {
+          include: {
+            _count: {
+              select: {
+                members: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         joinedAt: 'desc',
       },
     });
 
-    return memberships.map(({ role, joinedAt, organization }) => ({
-      ...organization,
-      role,
-      joinedAt,
-    }));
+    return memberships.map(({ role, joinedAt, organization }) => {
+      const { _count, ...organizationData } = organization;
+
+      return {
+        ...organizationData,
+        memberCount: _count.members,
+        role,
+        joinedAt,
+      };
+    });
   }
 
   async findOne(organizationId: string, userId: string) {
@@ -70,7 +83,15 @@ export class OrganizationsService {
       select: {
         role: true,
         joinedAt: true,
-        organization: true,
+        organization: {
+          include: {
+            _count: {
+              select: {
+                members: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -78,8 +99,11 @@ export class OrganizationsService {
       return null;
     }
 
+    const { _count, ...organizationData } = membership.organization;
+
     return {
-      ...membership.organization,
+      ...organizationData,
+      memberCount: _count.members,
       role: membership.role,
       joinedAt: membership.joinedAt,
     };
@@ -149,6 +173,30 @@ export class OrganizationsService {
             avatar: true,
           },
         },
+      },
+    });
+  }
+
+  async getMembers(organizationId: string) {
+    return this.prisma.organizationMember.findMany({
+      where: {
+        organizationId,
+      },
+      select: {
+        id: true,
+        role: true,
+        joinedAt: true,
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            avatar: true,
+          },
+        },
+      },
+      orderBy: {
+        joinedAt: 'asc',
       },
     });
   }
