@@ -1,5 +1,7 @@
 import {
+  BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,6 +10,7 @@ import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { CreateMemberDto } from './dto/create-member.dto';
+import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 
 @Injectable()
 export class OrganizationsService {
@@ -133,6 +136,62 @@ export class OrganizationsService {
         userId: dto.userId,
         organizationId,
         role: OrganizationRole.VIEWER,
+      },
+      select: {
+        id: true,
+        role: true,
+        joinedAt: true,
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateMemberRole(
+    organizationId: string,
+    userId: string,
+    dto: UpdateMemberRoleDto,
+  ) {
+    if (dto.role === OrganizationRole.OWNER) {
+      throw new BadRequestException(
+        'OWNER role can only be assigned through ownership transfer',
+      );
+    }
+
+    const membership = await this.prisma.organizationMember.findUnique({
+      where: {
+        userId_organizationId: {
+          userId,
+          organizationId,
+        },
+      },
+    });
+
+    if (!membership) {
+      throw new NotFoundException('User does not belong to this organization');
+    }
+
+    if (membership.role === OrganizationRole.OWNER) {
+      throw new ForbiddenException(
+        'Owner role can only be changed through ownership transfer',
+      );
+    }
+
+    return this.prisma.organizationMember.update({
+      where: {
+        userId_organizationId: {
+          userId,
+          organizationId,
+        },
+      },
+      data: {
+        role: dto.role,
       },
       select: {
         id: true,

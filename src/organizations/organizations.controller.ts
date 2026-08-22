@@ -21,6 +21,7 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { CreateMemberDto } from './dto/create-member.dto';
+import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 
 @Controller('organizations')
 export class OrganizationsController {
@@ -78,5 +79,20 @@ export class OrganizationsController {
     @Body() dto: CreateMemberDto,
   ) {
     return this.organizationsService.createMember(organizationId, dto);
+  }
+
+  @Patch(':organizationId/members/:userId')
+  @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
+  @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
+  updateMemberRole(
+    @Param('organizationId') organizationId: string,
+    @Param('userId') userId: string,
+    @Body() dto: UpdateMemberRoleDto,
+  ) {
+    return this.organizationsService.updateMemberRole(
+      organizationId,
+      userId,
+      dto,
+    );
   }
 }
