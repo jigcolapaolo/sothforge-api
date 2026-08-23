@@ -23,11 +23,18 @@ import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('organizations')
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 60_000,
+    },
+  })
   @Post()
   @UseGuards(JwtAuthGuard)
   create(
@@ -52,6 +59,12 @@ export class OrganizationsController {
     return this.organizationsService.findOne(organizationId, user.userId);
   }
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Patch(':organizationId')
   @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
   @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
@@ -62,6 +75,12 @@ export class OrganizationsController {
     return this.organizationsService.update(organizationId, dto);
   }
 
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 60_000,
+    },
+  })
   @Delete(':organizationId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
@@ -72,6 +91,12 @@ export class OrganizationsController {
 
   // Members
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Post(':organizationId/members')
   @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
   @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
@@ -88,6 +113,12 @@ export class OrganizationsController {
     return this.organizationsService.getMembers(organizationId);
   }
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Patch(':organizationId/members/:userId')
   @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
   @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
@@ -103,6 +134,12 @@ export class OrganizationsController {
     );
   }
 
+  @Throttle({
+    default: {
+      limit: 3,
+      ttl: 60_000,
+    },
+  })
   @Patch(':organizationId/transfer-ownership')
   @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
   @Roles(OrganizationRole.OWNER)
@@ -118,6 +155,12 @@ export class OrganizationsController {
     );
   }
 
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 60_000,
+    },
+  })
   @Delete(':organizationId/members/me')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, OrganizationGuard)
@@ -131,6 +174,12 @@ export class OrganizationsController {
     );
   }
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Delete(':organizationId/members/:userId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
