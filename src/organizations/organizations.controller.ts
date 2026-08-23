@@ -22,6 +22,7 @@ import { OrganizationRole } from 'src/generated/prisma/enums';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
+import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
 
 @Controller('organizations')
 export class OrganizationsController {
@@ -99,6 +100,21 @@ export class OrganizationsController {
       organizationId,
       userId,
       dto,
+    );
+  }
+
+  @Patch(':organizationId/transfer-ownership')
+  @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
+  @Roles(OrganizationRole.OWNER)
+  transferOwnership(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('organizationId') organizationId: string,
+    @Body() dto: TransferOwnershipDto,
+  ) {
+    return this.organizationsService.transferOwnership(
+      user.userId,
+      organizationId,
+      dto.userId,
     );
   }
 

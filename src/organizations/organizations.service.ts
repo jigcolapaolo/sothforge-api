@@ -257,6 +257,55 @@ export class OrganizationsService {
     });
   }
 
+  async transferOwnership(
+    currentOwnerId: string,
+    organizationId: string,
+    newOwnerId: string,
+  ) {
+    if (currentOwnerId === newOwnerId) {
+      throw new BadRequestException('The new owner must be a different user');
+    }
+
+    const newOwner = await this.prisma.organizationMember.findUnique({
+      where: {
+        userId_organizationId: {
+          userId: newOwnerId,
+          organizationId,
+        },
+      },
+    });
+
+    if (!newOwner) {
+      throw new NotFoundException('User does not belong to this organization');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.organizationMember.update({
+        where: {
+          userId_organizationId: {
+            userId: currentOwnerId,
+            organizationId,
+          },
+        },
+        data: {
+          role: OrganizationRole.ADMIN,
+        },
+      }),
+
+      this.prisma.organizationMember.update({
+        where: {
+          userId_organizationId: {
+            userId: newOwnerId,
+            organizationId,
+          },
+        },
+        data: {
+          role: OrganizationRole.OWNER,
+        },
+      }),
+    ]);
+  }
+
   async removeMember(
     organizationId: string,
     userId: string,
