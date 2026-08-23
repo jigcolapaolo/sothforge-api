@@ -24,11 +24,32 @@ import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
 import { Throttle } from '@nestjs/throttler';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
+@ApiTags('Organizations')
+@ApiBearerAuth()
 @Controller('organizations')
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 
+  @ApiOperation({ summary: 'Create an organization' })
+  @ApiResponse({
+    status: 201,
+    description: 'Organization created successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid organization data',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
   @Throttle({
     default: {
       limit: 5,
@@ -44,12 +65,34 @@ export class OrganizationsController {
     return this.organizationsService.create(user.userId, dto);
   }
 
+  @ApiOperation({ summary: 'Get organizations of the current user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Organizations retrieved successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
   @Get()
   @UseGuards(JwtAuthGuard)
   findAll(@CurrentUser() user: AuthenticatedUser) {
     return this.organizationsService.findAllByUser(user.userId);
   }
 
+  @ApiOperation({ summary: 'Get an organization by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Organization retrieved successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'User does not belong to this organization',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
   @Get(':organizationId')
   @UseGuards(JwtAuthGuard, OrganizationGuard)
   findOne(
@@ -59,6 +102,23 @@ export class OrganizationsController {
     return this.organizationsService.findOne(organizationId, user.userId);
   }
 
+  @ApiOperation({ summary: 'Update an organization' })
+  @ApiResponse({
+    status: 200,
+    description: 'Organization updated successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid organization data',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Insufficient permissions',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
   @Throttle({
     default: {
       limit: 10,
@@ -75,6 +135,19 @@ export class OrganizationsController {
     return this.organizationsService.update(organizationId, dto);
   }
 
+  @ApiOperation({ summary: 'Delete an organization' })
+  @ApiResponse({
+    status: 204,
+    description: 'Organization deleted successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Only the owner can delete the organization',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
   @Throttle({
     default: {
       limit: 5,
@@ -91,6 +164,31 @@ export class OrganizationsController {
 
   // Members
 
+  @ApiOperation({ summary: 'Add a member to an organization' })
+  @ApiResponse({
+    status: 201,
+    description: 'Member added successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid member data',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Insufficient permissions',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'User is already a member',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
   @Throttle({
     default: {
       limit: 10,
@@ -107,12 +205,46 @@ export class OrganizationsController {
     return this.organizationsService.createMember(organizationId, dto);
   }
 
+  @ApiOperation({ summary: 'Get organization members' })
+  @ApiResponse({
+    status: 200,
+    description: 'Members retrieved successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'User does not belong to this organization',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
   @Get(':organizationId/members')
   @UseGuards(JwtAuthGuard, OrganizationGuard)
   getMembers(@Param('organizationId') organizationId: string) {
     return this.organizationsService.getMembers(organizationId);
   }
 
+  @ApiOperation({ summary: 'Update a member role' })
+  @ApiResponse({
+    status: 200,
+    description: 'Member role updated successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid role',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Insufficient permissions',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Member not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
   @Throttle({
     default: {
       limit: 10,
@@ -134,6 +266,27 @@ export class OrganizationsController {
     );
   }
 
+  @ApiOperation({ summary: 'Transfer organization ownership' })
+  @ApiResponse({
+    status: 200,
+    description: 'Ownership transferred successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid transfer request',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Only the owner can transfer ownership',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Target user is not a member of the organization',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
   @Throttle({
     default: {
       limit: 3,
@@ -155,6 +308,23 @@ export class OrganizationsController {
     );
   }
 
+  @ApiOperation({ summary: 'Leave an organization' })
+  @ApiResponse({
+    status: 204,
+    description: 'Organization left successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Owner must transfer ownership before leaving',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User does not belong to this organization',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
   @Throttle({
     default: {
       limit: 5,
@@ -174,6 +344,23 @@ export class OrganizationsController {
     );
   }
 
+  @ApiOperation({ summary: 'Remove a member from an organization' })
+  @ApiResponse({
+    status: 204,
+    description: 'Member removed successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Insufficient permissions',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Member not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
   @Throttle({
     default: {
       limit: 10,
