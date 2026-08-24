@@ -26,4 +26,13 @@ export class ProjectsController {
   findAll(@Param('organizationId') organizationId: string) {
     return this.projectsService.findAll(organizationId);
   }
+
+  @Get(':projectId')
+  @UseGuards(JwtAuthGuard, OrganizationGuard)
+  findOne(
+    @Param('organizationId') organizationId: string,
+    @Param('projectId') projectId: string,
+  ) {
+    return this.projectsService.findOne(organizationId, projectId);
+  }
 }

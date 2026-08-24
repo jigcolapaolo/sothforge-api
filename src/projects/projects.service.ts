@@ -28,4 +28,13 @@ export class ProjectsService {
       },
     });
   }
+
+  async findOne(organizationId: string, projectId: string) {
+    return this.prisma.project.findFirst({
+      where: {
+        organizationId,
+        id: projectId,
+      },
+    });
+  }
 }
