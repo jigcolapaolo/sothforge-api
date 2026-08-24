@@ -1402,6 +1402,20 @@ export type ListEnumOrganizationRoleFieldRefInput<$PrismaModel> = FieldRefInputT
 
 
 /**
+ * Reference to a field of type 'ProjectStatus'
+ */
+export type EnumProjectStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProjectStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'ProjectStatus[]'
+ */
+export type ListEnumProjectStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProjectStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'TaskStatus'
  */
 export type EnumTaskStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TaskStatus'>

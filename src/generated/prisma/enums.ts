@@ -9,6 +9,16 @@
 * 🟢 You can import this file directly.
 */
 
+export const ProjectStatus = {
+  PLANNING: 'PLANNING',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type ProjectStatus = (typeof ProjectStatus)[keyof typeof ProjectStatus]
+
+
 export const TaskStatus = {
   TODO: 'TODO',
   IN_PROGRESS: 'IN_PROGRESS',

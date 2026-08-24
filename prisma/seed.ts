@@ -222,7 +222,7 @@ async function main() {
       organizationId: organization.id,
       name: 'SothForge API',
       description: 'Backend API for the SothForge project management platform.',
-      status: 'IN_PROGRESS',
+      status: 'PLANNING',
       startDate: new Date('2026-08-01'),
     },
   });
@@ -237,7 +237,7 @@ async function main() {
       organizationId: organization.id,
       name: 'SothForge Dashboard',
       description: 'Frontend dashboard for SothForge.',
-      status: 'PLANNED',
+      status: 'ACTIVE',
     },
   });
 
