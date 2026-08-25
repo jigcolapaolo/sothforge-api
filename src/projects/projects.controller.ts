@@ -19,11 +19,23 @@ import { OrganizationRole } from 'src/generated/prisma/enums';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { Throttle } from '@nestjs/throttler';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
+@ApiTags('Projects')
+@ApiBearerAuth()
 @Controller('organizations/:organizationId/projects')
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
+  @ApiOperation({ summary: 'Create a project' })
+  @ApiResponse({ status: 201, description: 'Project created successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid project data' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   @Throttle({
     default: {
       limit: 10,
@@ -40,12 +52,19 @@ export class ProjectsController {
     return this.projectsService.create(organizationId, dto);
   }
 
+  @ApiOperation({ summary: 'Get organization projects' })
+  @ApiResponse({ status: 200, description: 'Projects retrieved successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   @Get()
   @UseGuards(JwtAuthGuard, OrganizationGuard)
   findAll(@Param('organizationId') organizationId: string) {
     return this.projectsService.findAll(organizationId);
   }
 
+  @ApiOperation({ summary: 'Get a project' })
+  @ApiResponse({ status: 200, description: 'Project retrieved successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   @Get(':projectId')
   @UseGuards(JwtAuthGuard, OrganizationGuard)
   findOne(
@@ -55,6 +74,11 @@ export class ProjectsController {
     return this.projectsService.findOne(organizationId, projectId);
   }
 
+  @ApiOperation({ summary: 'Update a project' })
+  @ApiResponse({ status: 200, description: 'Project updated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid project data' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   @Throttle({
     default: {
       limit: 10,
@@ -72,6 +96,10 @@ export class ProjectsController {
     return this.projectsService.update(organizationId, projectId, dto);
   }
 
+  @ApiOperation({ summary: 'Delete a project' })
+  @ApiResponse({ status: 204, description: 'Project deleted successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   @Throttle({
     default: {
       limit: 5,
