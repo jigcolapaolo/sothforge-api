@@ -29,7 +29,7 @@ export type ProjectMinAggregateOutputType = {
   organizationId: string | null
   name: string | null
   description: string | null
-  status: string | null
+  status: $Enums.ProjectStatus | null
   startDate: Date | null
   endDate: Date | null
   createdAt: Date | null
@@ -41,7 +41,7 @@ export type ProjectMaxAggregateOutputType = {
   organizationId: string | null
   name: string | null
   description: string | null
-  status: string | null
+  status: $Enums.ProjectStatus | null
   startDate: Date | null
   endDate: Date | null
   createdAt: Date | null
@@ -176,7 +176,7 @@ export type ProjectGroupByOutputType = {
   organizationId: string
   name: string
   description: string | null
-  status: string
+  status: $Enums.ProjectStatus
   startDate: Date | null
   endDate: Date | null
   createdAt: Date
@@ -209,7 +209,7 @@ export type ProjectWhereInput = {
   organizationId?: Prisma.StringFilter<"Project"> | string
   name?: Prisma.StringFilter<"Project"> | string
   description?: Prisma.StringNullableFilter<"Project"> | string | null
-  status?: Prisma.StringFilter<"Project"> | string
+  status?: Prisma.EnumProjectStatusFilter<"Project"> | $Enums.ProjectStatus
   startDate?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   endDate?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
@@ -240,7 +240,7 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   organizationId?: Prisma.StringFilter<"Project"> | string
   name?: Prisma.StringFilter<"Project"> | string
   description?: Prisma.StringNullableFilter<"Project"> | string | null
-  status?: Prisma.StringFilter<"Project"> | string
+  status?: Prisma.EnumProjectStatusFilter<"Project"> | $Enums.ProjectStatus
   startDate?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   endDate?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
@@ -272,7 +272,7 @@ export type ProjectScalarWhereWithAggregatesInput = {
   organizationId?: Prisma.StringWithAggregatesFilter<"Project"> | string
   name?: Prisma.StringWithAggregatesFilter<"Project"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
-  status?: Prisma.StringWithAggregatesFilter<"Project"> | string
+  status?: Prisma.EnumProjectStatusWithAggregatesFilter<"Project"> | $Enums.ProjectStatus
   startDate?: Prisma.DateTimeNullableWithAggregatesFilter<"Project"> | Date | string | null
   endDate?: Prisma.DateTimeNullableWithAggregatesFilter<"Project"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Project"> | Date | string
@@ -283,7 +283,7 @@ export type ProjectCreateInput = {
   id?: string
   name: string
   description?: string | null
-  status: string
+  status?: $Enums.ProjectStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
   createdAt?: Date | string
@@ -297,7 +297,7 @@ export type ProjectUncheckedCreateInput = {
   organizationId: string
   name: string
   description?: string | null
-  status: string
+  status?: $Enums.ProjectStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
   createdAt?: Date | string
@@ -309,7 +309,7 @@ export type ProjectUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumProjectStatusFieldUpdateOperationsInput | $Enums.ProjectStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -323,7 +323,7 @@ export type ProjectUncheckedUpdateInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumProjectStatusFieldUpdateOperationsInput | $Enums.ProjectStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -336,7 +336,7 @@ export type ProjectCreateManyInput = {
   organizationId: string
   name: string
   description?: string | null
-  status: string
+  status?: $Enums.ProjectStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
   createdAt?: Date | string
@@ -347,7 +347,7 @@ export type ProjectUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumProjectStatusFieldUpdateOperationsInput | $Enums.ProjectStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -359,7 +359,7 @@ export type ProjectUncheckedUpdateManyInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumProjectStatusFieldUpdateOperationsInput | $Enums.ProjectStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -459,6 +459,10 @@ export type ProjectUncheckedUpdateManyWithoutOrganizationNestedInput = {
   deleteMany?: Prisma.ProjectScalarWhereInput | Prisma.ProjectScalarWhereInput[]
 }
 
+export type EnumProjectStatusFieldUpdateOperationsInput = {
+  set?: $Enums.ProjectStatus
+}
+
 export type ProjectCreateNestedOneWithoutBoardsInput = {
   create?: Prisma.XOR<Prisma.ProjectCreateWithoutBoardsInput, Prisma.ProjectUncheckedCreateWithoutBoardsInput>
   connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutBoardsInput
@@ -477,7 +481,7 @@ export type ProjectCreateWithoutOrganizationInput = {
   id?: string
   name: string
   description?: string | null
-  status: string
+  status?: $Enums.ProjectStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
   createdAt?: Date | string
@@ -489,7 +493,7 @@ export type ProjectUncheckedCreateWithoutOrganizationInput = {
   id?: string
   name: string
   description?: string | null
-  status: string
+  status?: $Enums.ProjectStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
   createdAt?: Date | string
@@ -531,7 +535,7 @@ export type ProjectScalarWhereInput = {
   organizationId?: Prisma.StringFilter<"Project"> | string
   name?: Prisma.StringFilter<"Project"> | string
   description?: Prisma.StringNullableFilter<"Project"> | string | null
-  status?: Prisma.StringFilter<"Project"> | string
+  status?: Prisma.EnumProjectStatusFilter<"Project"> | $Enums.ProjectStatus
   startDate?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   endDate?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
@@ -542,7 +546,7 @@ export type ProjectCreateWithoutBoardsInput = {
   id?: string
   name: string
   description?: string | null
-  status: string
+  status?: $Enums.ProjectStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
   createdAt?: Date | string
@@ -555,7 +559,7 @@ export type ProjectUncheckedCreateWithoutBoardsInput = {
   organizationId: string
   name: string
   description?: string | null
-  status: string
+  status?: $Enums.ProjectStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
   createdAt?: Date | string
@@ -582,7 +586,7 @@ export type ProjectUpdateWithoutBoardsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumProjectStatusFieldUpdateOperationsInput | $Enums.ProjectStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -595,7 +599,7 @@ export type ProjectUncheckedUpdateWithoutBoardsInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumProjectStatusFieldUpdateOperationsInput | $Enums.ProjectStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -606,7 +610,7 @@ export type ProjectCreateManyOrganizationInput = {
   id?: string
   name: string
   description?: string | null
-  status: string
+  status?: $Enums.ProjectStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
   createdAt?: Date | string
@@ -617,7 +621,7 @@ export type ProjectUpdateWithoutOrganizationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumProjectStatusFieldUpdateOperationsInput | $Enums.ProjectStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -629,7 +633,7 @@ export type ProjectUncheckedUpdateWithoutOrganizationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumProjectStatusFieldUpdateOperationsInput | $Enums.ProjectStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -641,7 +645,7 @@ export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumProjectStatusFieldUpdateOperationsInput | $Enums.ProjectStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -756,7 +760,7 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     organizationId: string
     name: string
     description: string | null
-    status: string
+    status: $Enums.ProjectStatus
     startDate: Date | null
     endDate: Date | null
     createdAt: Date
@@ -1190,7 +1194,7 @@ export interface ProjectFieldRefs {
   readonly organizationId: Prisma.FieldRef<"Project", 'String'>
   readonly name: Prisma.FieldRef<"Project", 'String'>
   readonly description: Prisma.FieldRef<"Project", 'String'>
-  readonly status: Prisma.FieldRef<"Project", 'String'>
+  readonly status: Prisma.FieldRef<"Project", 'ProjectStatus'>
   readonly startDate: Prisma.FieldRef<"Project", 'DateTime'>
   readonly endDate: Prisma.FieldRef<"Project", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Project", 'DateTime'>
