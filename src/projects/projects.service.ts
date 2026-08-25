@@ -72,4 +72,23 @@ export class ProjectsService {
       },
     });
   }
+
+  async remove(organizationId: string, projectId: string) {
+    const project = await this.prisma.project.findFirst({
+      where: {
+        id: projectId,
+        organizationId,
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    await this.prisma.project.delete({
+      where: {
+        id: projectId,
+      },
+    });
+  }
 }
