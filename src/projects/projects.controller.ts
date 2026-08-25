@@ -18,11 +18,18 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('organizations/:organizationId/projects')
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Post()
   @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
   @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
@@ -48,6 +55,12 @@ export class ProjectsController {
     return this.projectsService.findOne(organizationId, projectId);
   }
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Patch(':projectId')
   @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
   @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
@@ -59,6 +72,12 @@ export class ProjectsController {
     return this.projectsService.update(organizationId, projectId, dto);
   }
 
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 60_000,
+    },
+  })
   @Delete(':projectId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
