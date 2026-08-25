@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { OrganizationGuard } from 'src/auth/guards/organization.guard';
@@ -6,6 +14,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { UpdateProjectDto } from './dto/update-project.dto';
 
 @Controller('organizations/:organizationId/projects')
 export class ProjectsController {
@@ -34,5 +43,16 @@ export class ProjectsController {
     @Param('projectId') projectId: string,
   ) {
     return this.projectsService.findOne(organizationId, projectId);
+  }
+
+  @Patch(':projectId')
+  @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
+  @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
+  update(
+    @Param('organizationId') organizationId: string,
+    @Param('projectId') projectId: string,
+    @Body() dto: UpdateProjectDto,
+  ) {
+    return this.projectsService.update(organizationId, projectId, dto);
   }
 }
