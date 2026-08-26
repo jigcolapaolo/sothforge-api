@@ -8,7 +8,7 @@ import { ProjectGuard } from './guards/project.guard';
 @Module({
   imports: [PrismaModule, AuthModule],
   controllers: [ProjectsController],
-  providers: [ProjectsService],
+  providers: [ProjectsService, ProjectGuard],
   exports: [ProjectGuard],
 })
 export class ProjectsModule {}
