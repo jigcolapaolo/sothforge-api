@@ -14,4 +14,15 @@ export class BoardsService {
       },
     });
   }
+
+  async findAll(projectId: string) {
+    return this.prisma.board.findMany({
+      where: {
+        projectId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
 }
