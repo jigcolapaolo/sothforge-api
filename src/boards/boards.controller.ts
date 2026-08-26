@@ -28,4 +28,13 @@ export class BoardsController {
   findAll(@Param('projectId') projectId: string) {
     return this.boardsService.findAll(projectId);
   }
+
+  @Get(':boardId')
+  @UseGuards(JwtAuthGuard, OrganizationGuard, ProjectGuard)
+  findOne(
+    @Param('projectId') projectId: string,
+    @Param('boardId') boardId: string,
+  ) {
+    return this.boardsService.findOne(projectId, boardId);
+  }
 }
