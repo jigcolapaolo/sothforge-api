@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -60,5 +63,20 @@ export class BoardsController {
     @Body() dto: UpdateBoardDto,
   ) {
     return this.boardsService.update(projectId, boardId, dto);
+  }
+
+  @Delete(':boardId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, OrganizationGuard, ProjectGuard, RolesGuard)
+  @Roles(
+    OrganizationRole.OWNER,
+    OrganizationRole.ADMIN,
+    OrganizationRole.MEMBER,
+  )
+  remove(
+    @Param('projectId') projectId: string,
+    @Param('boardId') boardId: string,
+  ) {
+    return this.boardsService.remove(projectId, boardId);
   }
 }

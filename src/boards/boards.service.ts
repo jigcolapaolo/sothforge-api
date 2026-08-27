@@ -63,4 +63,23 @@ export class BoardsService {
       },
     });
   }
+
+  async remove(projectId: string, boardId: string) {
+    const board = await this.prisma.board.findFirst({
+      where: {
+        id: boardId,
+        projectId,
+      },
+    });
+
+    if (!board) {
+      throw new NotFoundException('Board not found');
+    }
+
+    await this.prisma.board.delete({
+      where: {
+        id: boardId,
+      },
+    });
+  }
 }
