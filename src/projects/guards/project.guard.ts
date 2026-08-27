@@ -34,8 +34,6 @@ export class ProjectGuard implements CanActivate {
       );
     }
 
-    request.project = project;
-
     return true;
   }
 }
