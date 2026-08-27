@@ -19,11 +19,18 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import { CreateBoardDto } from './dto/create-board.dto';
 import { UpdateBoardDto } from './dto/update-board.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('organizations/:organizationId/projects/:projectId/boards')
 export class BoardsController {
   constructor(private readonly boardsService: BoardsService) {}
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Post()
   @UseGuards(JwtAuthGuard, OrganizationGuard, ProjectGuard, RolesGuard)
   @Roles(
@@ -50,6 +57,12 @@ export class BoardsController {
     return this.boardsService.findOne(projectId, boardId);
   }
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Patch(':boardId')
   @UseGuards(JwtAuthGuard, OrganizationGuard, ProjectGuard, RolesGuard)
   @Roles(
@@ -65,6 +78,12 @@ export class BoardsController {
     return this.boardsService.update(projectId, boardId, dto);
   }
 
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 60_000,
+    },
+  })
   @Delete(':boardId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, OrganizationGuard, ProjectGuard, RolesGuard)
