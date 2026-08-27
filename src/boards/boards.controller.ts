@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { BoardsService } from './boards.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { OrganizationGuard } from 'src/auth/guards/organization.guard';
@@ -7,6 +15,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import { CreateBoardDto } from './dto/create-board.dto';
+import { UpdateBoardDto } from './dto/update-board.dto';
 
 @Controller('organizations/:organizationId/projects/:projectId/boards')
 export class BoardsController {
@@ -36,5 +45,20 @@ export class BoardsController {
     @Param('boardId') boardId: string,
   ) {
     return this.boardsService.findOne(projectId, boardId);
+  }
+
+  @Patch(':boardId')
+  @UseGuards(JwtAuthGuard, OrganizationGuard, ProjectGuard, RolesGuard)
+  @Roles(
+    OrganizationRole.OWNER,
+    OrganizationRole.ADMIN,
+    OrganizationRole.MEMBER,
+  )
+  update(
+    @Param('projectId') projectId: string,
+    @Param('boardId') boardId: string,
+    @Body() dto: UpdateBoardDto,
+  ) {
+    return this.boardsService.update(projectId, boardId, dto);
   }
 }
