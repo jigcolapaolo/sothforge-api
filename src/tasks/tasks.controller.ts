@@ -1,4 +1,12 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { OrganizationGuard } from 'src/auth/guards/organization.guard';
@@ -10,6 +18,7 @@ import { OrganizationRole } from 'src/generated/prisma/enums';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { TaskQueryDto } from './dto/task-query.dto';
 
 @Controller(
   'organizations/:organizationId/projects/:projectId/boards/:boardId/tasks',
@@ -36,5 +45,11 @@ export class TasksController {
     @Body() dto: CreateTaskDto,
   ) {
     return this.tasksService.create(boardId, user.userId, dto);
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, OrganizationGuard, ProjectGuard, BoardGuard)
+  findAll(@Param('boardId') boardId: string, @Query() query: TaskQueryDto) {
+    return this.tasksService.findAll(boardId, query);
   }
 }

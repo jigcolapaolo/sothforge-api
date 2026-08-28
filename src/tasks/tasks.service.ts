@@ -6,6 +6,8 @@ import {
 import { PrismaService } from 'src/database/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { AuthorizationService } from 'src/common/authorization/authorization.service';
+import { TaskQueryDto } from './dto/task-query.dto';
+import { Prisma } from 'src/generated/prisma/client';
 
 @Injectable()
 export class TasksService {
@@ -41,6 +43,90 @@ export class TasksService {
         assignedToId: dto.assignedToId,
       },
     });
+  }
+
+  async findAll(boardId: string, query: TaskQueryDto) {
+    const {
+      page = 1,
+      limit = 20,
+      search,
+      status,
+      priority,
+      assignedToId,
+      labelId,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = query;
+
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.TaskWhereInput = {
+      boardId,
+
+      ...(status && {
+        status,
+      }),
+
+      ...(priority && {
+        priority,
+      }),
+
+      ...(assignedToId && {
+        assignedToId,
+      }),
+
+      ...(labelId && {
+        labels: {
+          some: {
+            labelId,
+          },
+        },
+      }),
+
+      ...(search && {
+        OR: [
+          {
+            title: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            description: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      }),
+    };
+
+    const orderBy = {
+      [sortBy]: sortOrder,
+    };
+
+    const [tasks, total] = await Promise.all([
+      this.prisma.task.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy,
+      }),
+
+      this.prisma.task.count({
+        where,
+      }),
+    ]);
+
+    return {
+      data: tasks,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   private async validateAssignee(assignedToId: string, organizationId: string) {
