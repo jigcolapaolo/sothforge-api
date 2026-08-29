@@ -8,6 +8,7 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { AuthorizationService } from 'src/common/authorization/authorization.service';
 import { TaskQueryDto } from './dto/task-query.dto';
 import { Prisma } from 'src/generated/prisma/client';
+import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Injectable()
 export class TasksService {
@@ -142,6 +143,31 @@ export class TasksService {
     }
 
     return task;
+  }
+
+  async update(boardId: string, taskId: string, dto: UpdateTaskDto) {
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id: taskId,
+        boardId,
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    return this.prisma.task.update({
+      where: {
+        id: taskId,
+      },
+      data: {
+        title: dto.title,
+        description: dto.description,
+        dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+        estimatedHours: dto.estimatedHours,
+      },
+    });
   }
 
   private async validateAssignee(assignedToId: string, organizationId: string) {

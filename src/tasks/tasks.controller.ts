@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -20,6 +21,7 @@ import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { TaskQueryDto } from './dto/task-query.dto';
 import { TaskGuard } from './guards/task.guard';
+import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Controller(
   'organizations/:organizationId/projects/:projectId/boards/:boardId/tasks',
@@ -64,5 +66,27 @@ export class TasksController {
   )
   findOne(@Param('boardId') boardId: string, @Param('taskId') taskId: string) {
     return this.tasksService.findOne(boardId, taskId);
+  }
+
+  @Patch(':taskId')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationGuard,
+    ProjectGuard,
+    BoardGuard,
+    TaskGuard,
+    RolesGuard,
+  )
+  @Roles(
+    OrganizationRole.OWNER,
+    OrganizationRole.ADMIN,
+    OrganizationRole.MEMBER,
+  )
+  update(
+    @Param('boardId') boardId: string,
+    @Param('taskId') taskId: string,
+    @Body() dto: UpdateTaskDto,
+  ) {
+    return this.tasksService.update(boardId, taskId, dto);
   }
 }
