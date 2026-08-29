@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -88,5 +91,24 @@ export class TasksController {
     @Body() dto: UpdateTaskDto,
   ) {
     return this.tasksService.update(boardId, taskId, dto);
+  }
+
+  @Delete(':taskId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationGuard,
+    ProjectGuard,
+    BoardGuard,
+    TaskGuard,
+    RolesGuard,
+  )
+  @Roles(
+    OrganizationRole.OWNER,
+    OrganizationRole.ADMIN,
+    OrganizationRole.MEMBER,
+  )
+  remove(@Param('boardId') boardId: string, @Param('taskId') taskId: string) {
+    return this.tasksService.remove(boardId, taskId);
   }
 }

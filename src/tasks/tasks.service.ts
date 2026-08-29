@@ -170,6 +170,25 @@ export class TasksService {
     });
   }
 
+  async remove(boardId: string, taskId: string) {
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id: taskId,
+        boardId,
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    await this.prisma.task.delete({
+      where: {
+        id: taskId,
+      },
+    });
+  }
+
   private async validateAssignee(assignedToId: string, organizationId: string) {
     const membership =
       await this.authorizationService.getOrganizationMembership(
