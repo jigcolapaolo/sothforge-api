@@ -129,6 +129,21 @@ export class TasksService {
     };
   }
 
+  async findOne(boardId: string, taskId: string) {
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id: taskId,
+        boardId,
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    return task;
+  }
+
   private async validateAssignee(assignedToId: string, organizationId: string) {
     const membership =
       await this.authorizationService.getOrganizationMembership(

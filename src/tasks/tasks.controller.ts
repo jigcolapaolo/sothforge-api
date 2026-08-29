@@ -19,6 +19,7 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { TaskQueryDto } from './dto/task-query.dto';
+import { TaskGuard } from './guards/task.guard';
 
 @Controller(
   'organizations/:organizationId/projects/:projectId/boards/:boardId/tasks',
@@ -51,5 +52,17 @@ export class TasksController {
   @UseGuards(JwtAuthGuard, OrganizationGuard, ProjectGuard, BoardGuard)
   findAll(@Param('boardId') boardId: string, @Query() query: TaskQueryDto) {
     return this.tasksService.findAll(boardId, query);
+  }
+
+  @Get(':taskId')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationGuard,
+    ProjectGuard,
+    BoardGuard,
+    TaskGuard,
+  )
+  findOne(@Param('boardId') boardId: string, @Param('taskId') taskId: string) {
+    return this.tasksService.findOne(boardId, taskId);
   }
 }
