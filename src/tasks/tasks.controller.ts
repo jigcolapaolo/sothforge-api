@@ -25,6 +25,7 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { TaskQueryDto } from './dto/task-query.dto';
 import { TaskGuard } from './guards/task.guard';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { AssignTaskDto } from './dto/assign-task.dto';
 
 @Controller(
   'organizations/:organizationId/projects/:projectId/boards/:boardId/tasks',
@@ -110,5 +111,42 @@ export class TasksController {
   )
   remove(@Param('boardId') boardId: string, @Param('taskId') taskId: string) {
     return this.tasksService.remove(boardId, taskId);
+  }
+
+  @Patch(':taskId/assignee')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationGuard,
+    ProjectGuard,
+    BoardGuard,
+    TaskGuard,
+    RolesGuard,
+  )
+  @Roles(
+    OrganizationRole.OWNER,
+    OrganizationRole.ADMIN,
+    OrganizationRole.MEMBER,
+  )
+  assignTask(@Param('taskId') taskId: string, @Body() dto: AssignTaskDto) {
+    return this.tasksService.assignTask(taskId, dto);
+  }
+
+  @Delete(':taskId/assignee')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationGuard,
+    ProjectGuard,
+    BoardGuard,
+    TaskGuard,
+    RolesGuard,
+  )
+  @Roles(
+    OrganizationRole.OWNER,
+    OrganizationRole.ADMIN,
+    OrganizationRole.MEMBER,
+  )
+  removeAssignee(@Param('taskId') taskId: string) {
+    return this.tasksService.removeAssignee(taskId);
   }
 }

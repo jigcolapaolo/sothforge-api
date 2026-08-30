@@ -9,6 +9,7 @@ import { AuthorizationService } from 'src/common/authorization/authorization.ser
 import { TaskQueryDto } from './dto/task-query.dto';
 import { Prisma } from 'src/generated/prisma/client';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { AssignTaskDto } from './dto/assign-task.dto';
 
 @Injectable()
 export class TasksService {
@@ -185,6 +186,42 @@ export class TasksService {
     await this.prisma.task.delete({
       where: {
         id: taskId,
+      },
+    });
+  }
+
+  async assignTask(taskId: string, dto: AssignTaskDto) {
+    const task = await this.authorizationService.getTaskContext(taskId);
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    await this.validateAssignee(dto.userId, task.board.project.organizationId);
+
+    return this.prisma.task.update({
+      where: {
+        id: task.id,
+      },
+      data: {
+        assignedToId: dto.userId,
+      },
+    });
+  }
+
+  async removeAssignee(taskId: string) {
+    const task = await this.authorizationService.getTaskContext(taskId);
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    await this.prisma.task.update({
+      where: {
+        id: taskId,
+      },
+      data: {
+        assignedToId: null,
       },
     });
   }
