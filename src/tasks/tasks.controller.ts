@@ -29,13 +29,26 @@ import { AssignTaskDto } from './dto/assign-task.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { UpdateTaskPriorityDto } from './dto/update-task-priority.dto';
 import { Throttle } from '@nestjs/throttler';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
+@ApiTags('Tasks')
+@ApiBearerAuth()
 @Controller(
   'organizations/:organizationId/projects/:projectId/boards/:boardId/tasks',
 )
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
+  @ApiOperation({ summary: 'Create a task' })
+  @ApiResponse({ status: 201, description: 'Task created successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid task data' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
   @Throttle({
     default: {
       limit: 10,
@@ -63,12 +76,20 @@ export class TasksController {
     return this.tasksService.create(boardId, user.userId, dto);
   }
 
+  @ApiOperation({ summary: 'List tasks from a board' })
+  @ApiResponse({ status: 200, description: 'Tasks retrieved successfully' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
   @Get()
   @UseGuards(JwtAuthGuard, OrganizationGuard, ProjectGuard, BoardGuard)
   findAll(@Param('boardId') boardId: string, @Query() query: TaskQueryDto) {
     return this.tasksService.findAll(boardId, query);
   }
 
+  @ApiOperation({ summary: 'Get a task by ID' })
+  @ApiParam({ name: 'taskId', description: 'Task ID' })
+  @ApiResponse({ status: 200, description: 'Task retrieved successfully' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  @ApiResponse({ status: 404, description: 'Task not found' })
   @Get(':taskId')
   @UseGuards(
     JwtAuthGuard,
@@ -81,6 +102,11 @@ export class TasksController {
     return this.tasksService.findOne(boardId, taskId);
   }
 
+  @ApiOperation({ summary: 'Update a task' })
+  @ApiParam({ name: 'taskId', description: 'Task ID' })
+  @ApiResponse({ status: 200, description: 'Task updated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid task data' })
+  @ApiResponse({ status: 404, description: 'Task not found' })
   @Throttle({
     default: {
       limit: 10,
@@ -109,6 +135,10 @@ export class TasksController {
     return this.tasksService.update(boardId, taskId, dto);
   }
 
+  @ApiOperation({ summary: 'Delete a task' })
+  @ApiParam({ name: 'taskId', description: 'Task ID' })
+  @ApiResponse({ status: 204, description: 'Task deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Task not found' })
   @Throttle({
     default: {
       limit: 5,
@@ -134,6 +164,14 @@ export class TasksController {
     return this.tasksService.remove(boardId, taskId);
   }
 
+  @ApiOperation({ summary: 'Assign a user to a task' })
+  @ApiParam({ name: 'taskId', description: 'Task ID' })
+  @ApiResponse({ status: 200, description: 'User assigned successfully' })
+  @ApiResponse({
+    status: 403,
+    description: 'User does not belong to the organization',
+  })
+  @ApiResponse({ status: 404, description: 'Task not found' })
   @Throttle({
     default: {
       limit: 10,
@@ -158,6 +196,9 @@ export class TasksController {
     return this.tasksService.assignTask(taskId, dto);
   }
 
+  @ApiOperation({ summary: 'Remove the assigned user from a task' })
+  @ApiParam({ name: 'taskId', description: 'Task ID' })
+  @ApiResponse({ status: 204, description: 'Assignee removed successfully' })
   @Throttle({
     default: {
       limit: 5,
@@ -183,6 +224,11 @@ export class TasksController {
     return this.tasksService.removeAssignee(taskId);
   }
 
+  @ApiOperation({ summary: 'Update task status' })
+  @ApiParam({ name: 'taskId', description: 'Task ID' })
+  @ApiResponse({ status: 200, description: 'Task status updated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid status' })
+  @ApiResponse({ status: 404, description: 'Task not found' })
   @Throttle({
     default: {
       limit: 10,
@@ -210,6 +256,14 @@ export class TasksController {
     return this.tasksService.updateStatus(taskId, dto);
   }
 
+  @ApiOperation({ summary: 'Update task priority' })
+  @ApiParam({ name: 'taskId', description: 'Task ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Task priority updated successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid priority' })
+  @ApiResponse({ status: 404, description: 'Task not found' })
   @Throttle({
     default: {
       limit: 10,
