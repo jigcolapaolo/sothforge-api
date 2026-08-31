@@ -27,6 +27,7 @@ import { TaskGuard } from './guards/task.guard';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
+import { UpdateTaskPriorityDto } from './dto/update-task-priority.dto';
 
 @Controller(
   'organizations/:organizationId/projects/:projectId/boards/:boardId/tasks',
@@ -170,5 +171,26 @@ export class TasksController {
     @Body() dto: UpdateTaskStatusDto,
   ) {
     return this.tasksService.updateStatus(taskId, dto);
+  }
+
+  @Patch(':taskId/priority')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationGuard,
+    ProjectGuard,
+    BoardGuard,
+    TaskGuard,
+    RolesGuard,
+  )
+  @Roles(
+    OrganizationRole.OWNER,
+    OrganizationRole.ADMIN,
+    OrganizationRole.MEMBER,
+  )
+  updatePriority(
+    @Param('taskId') taskId: string,
+    @Body() dto: UpdateTaskPriorityDto,
+  ) {
+    return this.tasksService.updatePriority(taskId, dto);
   }
 }
