@@ -28,6 +28,7 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { UpdateTaskPriorityDto } from './dto/update-task-priority.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller(
   'organizations/:organizationId/projects/:projectId/boards/:boardId/tasks',
@@ -35,6 +36,12 @@ import { UpdateTaskPriorityDto } from './dto/update-task-priority.dto';
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Post()
   @UseGuards(
     JwtAuthGuard,
@@ -74,6 +81,12 @@ export class TasksController {
     return this.tasksService.findOne(boardId, taskId);
   }
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Patch(':taskId')
   @UseGuards(
     JwtAuthGuard,
@@ -96,6 +109,12 @@ export class TasksController {
     return this.tasksService.update(boardId, taskId, dto);
   }
 
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 60_000,
+    },
+  })
   @Delete(':taskId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(
@@ -115,6 +134,12 @@ export class TasksController {
     return this.tasksService.remove(boardId, taskId);
   }
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Patch(':taskId/assignee')
   @UseGuards(
     JwtAuthGuard,
@@ -133,6 +158,12 @@ export class TasksController {
     return this.tasksService.assignTask(taskId, dto);
   }
 
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 60_000,
+    },
+  })
   @Delete(':taskId/assignee')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(
@@ -152,6 +183,12 @@ export class TasksController {
     return this.tasksService.removeAssignee(taskId);
   }
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Patch(':taskId/status')
   @UseGuards(
     JwtAuthGuard,
@@ -173,6 +210,12 @@ export class TasksController {
     return this.tasksService.updateStatus(taskId, dto);
   }
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Patch(':taskId/priority')
   @UseGuards(
     JwtAuthGuard,

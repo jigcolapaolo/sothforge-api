@@ -167,7 +167,12 @@ export class TasksService {
       data: {
         title: dto.title,
         description: dto.description,
-        dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+        dueDate:
+          dto.dueDate === undefined
+            ? undefined
+            : dto.dueDate === null
+              ? null
+              : new Date(dto.dueDate),
         estimatedHours: dto.estimatedHours,
       },
     });
