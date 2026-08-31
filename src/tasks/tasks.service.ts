@@ -10,6 +10,7 @@ import { TaskQueryDto } from './dto/task-query.dto';
 import { Prisma } from 'src/generated/prisma/client';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
+import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 
 @Injectable()
 export class TasksService {
@@ -222,6 +223,23 @@ export class TasksService {
       },
       data: {
         assignedToId: null,
+      },
+    });
+  }
+
+  async updateStatus(taskId: string, dto: UpdateTaskStatusDto) {
+    const task = await this.authorizationService.getTaskContext(taskId);
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    return this.prisma.task.update({
+      where: {
+        id: taskId,
+      },
+      data: {
+        status: dto.status,
       },
     });
   }
