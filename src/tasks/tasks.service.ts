@@ -20,19 +20,14 @@ export class TasksService {
     private readonly authorizationService: AuthorizationService,
   ) {}
 
-  async create(boardId: string, createdById: string, dto: CreateTaskDto) {
-    const boardContext =
-      await this.authorizationService.getBoardContext(boardId);
-
-    if (!boardContext) {
-      throw new NotFoundException('Board not found');
-    }
-
+  async create(
+    boardId: string,
+    createdById: string,
+    resourceOrganizationId: string,
+    dto: CreateTaskDto,
+  ) {
     if (dto.assignedToId) {
-      await this.validateAssignee(
-        dto.assignedToId,
-        boardContext.project.organizationId,
-      );
+      await this.validateAssignee(dto.assignedToId, resourceOrganizationId);
     }
 
     return this.prisma.task.create({
@@ -197,18 +192,16 @@ export class TasksService {
     });
   }
 
-  async assignTask(taskId: string, dto: AssignTaskDto) {
-    const task = await this.authorizationService.getTaskContext(taskId);
-
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
-
-    await this.validateAssignee(dto.userId, task.board.project.organizationId);
+  async assignTask(
+    taskId: string,
+    resourceOrganizationId: string,
+    dto: AssignTaskDto,
+  ) {
+    await this.validateAssignee(dto.userId, resourceOrganizationId);
 
     return this.prisma.task.update({
       where: {
-        id: task.id,
+        id: taskId,
       },
       data: {
         assignedToId: dto.userId,
@@ -217,12 +210,6 @@ export class TasksService {
   }
 
   async removeAssignee(taskId: string) {
-    const task = await this.authorizationService.getTaskContext(taskId);
-
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
-
     await this.prisma.task.update({
       where: {
         id: taskId,
@@ -234,12 +221,6 @@ export class TasksService {
   }
 
   async updateStatus(taskId: string, dto: UpdateTaskStatusDto) {
-    const task = await this.authorizationService.getTaskContext(taskId);
-
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
-
     return this.prisma.task.update({
       where: {
         id: taskId,
@@ -251,12 +232,6 @@ export class TasksService {
   }
 
   async updatePriority(taskId: string, dto: UpdateTaskPriorityDto) {
-    const task = await this.authorizationService.getTaskContext(taskId);
-
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
-
     return this.prisma.task.update({
       where: {
         id: taskId,

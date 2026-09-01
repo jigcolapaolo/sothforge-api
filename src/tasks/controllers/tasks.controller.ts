@@ -7,27 +7,19 @@ import {
   HttpStatus,
   Param,
   Patch,
-  Post,
-  Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
-import { TasksService } from './tasks.service';
+import { TasksService } from '../tasks.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { OrganizationGuard } from 'src/auth/guards/organization.guard';
-import { ProjectGuard } from 'src/projects/guards/project.guard';
-import { BoardGuard } from 'src/boards/guards/board.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { OrganizationRole } from 'src/generated/prisma/enums';
-import { CurrentUser } from 'src/common/decorators/current-user.decorator';
-import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
-import { CreateTaskDto } from './dto/create-task.dto';
-import { TaskQueryDto } from './dto/task-query.dto';
-import { TaskGuard } from './guards/task.guard';
-import { UpdateTaskDto } from './dto/update-task.dto';
-import { AssignTaskDto } from './dto/assign-task.dto';
-import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
-import { UpdateTaskPriorityDto } from './dto/update-task-priority.dto';
+import { TaskGuard } from '../guards/task.guard';
+import { UpdateTaskDto } from '../dto/update-task.dto';
+import { AssignTaskDto } from '../dto/assign-task.dto';
+import { UpdateTaskStatusDto } from '../dto/update-task-status.dto';
+import { UpdateTaskPriorityDto } from '../dto/update-task-priority.dto';
 import { Throttle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
@@ -36,54 +28,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 
 @ApiTags('Tasks')
 @ApiBearerAuth()
-@Controller(
-  'organizations/:organizationId/projects/:projectId/boards/:boardId/tasks',
-)
+@Controller('tasks')
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
-
-  @ApiOperation({ summary: 'Create a task' })
-  @ApiResponse({ status: 201, description: 'Task created successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid task data' })
-  @ApiResponse({ status: 403, description: 'Access denied' })
-  @Throttle({
-    default: {
-      limit: 10,
-      ttl: 60_000,
-    },
-  })
-  @Post()
-  @UseGuards(
-    JwtAuthGuard,
-    OrganizationGuard,
-    ProjectGuard,
-    BoardGuard,
-    RolesGuard,
-  )
-  @Roles(
-    OrganizationRole.OWNER,
-    OrganizationRole.ADMIN,
-    OrganizationRole.MEMBER,
-  )
-  create(
-    @Param('boardId') boardId: string,
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() dto: CreateTaskDto,
-  ) {
-    return this.tasksService.create(boardId, user.userId, dto);
-  }
-
-  @ApiOperation({ summary: 'List tasks from a board' })
-  @ApiResponse({ status: 200, description: 'Tasks retrieved successfully' })
-  @ApiResponse({ status: 403, description: 'Access denied' })
-  @Get()
-  @UseGuards(JwtAuthGuard, OrganizationGuard, ProjectGuard, BoardGuard)
-  findAll(@Param('boardId') boardId: string, @Query() query: TaskQueryDto) {
-    return this.tasksService.findAll(boardId, query);
-  }
 
   @ApiOperation({ summary: 'Get a task by ID' })
   @ApiParam({ name: 'taskId', description: 'Task ID' })
@@ -91,13 +42,7 @@ export class TasksController {
   @ApiResponse({ status: 403, description: 'Access denied' })
   @ApiResponse({ status: 404, description: 'Task not found' })
   @Get(':taskId')
-  @UseGuards(
-    JwtAuthGuard,
-    OrganizationGuard,
-    ProjectGuard,
-    BoardGuard,
-    TaskGuard,
-  )
+  @UseGuards(JwtAuthGuard, TaskGuard)
   findOne(@Param('boardId') boardId: string, @Param('taskId') taskId: string) {
     return this.tasksService.findOne(boardId, taskId);
   }
@@ -114,14 +59,7 @@ export class TasksController {
     },
   })
   @Patch(':taskId')
-  @UseGuards(
-    JwtAuthGuard,
-    OrganizationGuard,
-    ProjectGuard,
-    BoardGuard,
-    TaskGuard,
-    RolesGuard,
-  )
+  @UseGuards(JwtAuthGuard, TaskGuard, RolesGuard)
   @Roles(
     OrganizationRole.OWNER,
     OrganizationRole.ADMIN,
@@ -147,14 +85,7 @@ export class TasksController {
   })
   @Delete(':taskId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(
-    JwtAuthGuard,
-    OrganizationGuard,
-    ProjectGuard,
-    BoardGuard,
-    TaskGuard,
-    RolesGuard,
-  )
+  @UseGuards(JwtAuthGuard, TaskGuard, RolesGuard)
   @Roles(
     OrganizationRole.OWNER,
     OrganizationRole.ADMIN,
@@ -179,21 +110,22 @@ export class TasksController {
     },
   })
   @Patch(':taskId/assignee')
-  @UseGuards(
-    JwtAuthGuard,
-    OrganizationGuard,
-    ProjectGuard,
-    BoardGuard,
-    TaskGuard,
-    RolesGuard,
-  )
+  @UseGuards(JwtAuthGuard, TaskGuard, RolesGuard)
   @Roles(
     OrganizationRole.OWNER,
     OrganizationRole.ADMIN,
     OrganizationRole.MEMBER,
   )
-  assignTask(@Param('taskId') taskId: string, @Body() dto: AssignTaskDto) {
-    return this.tasksService.assignTask(taskId, dto);
+  assignTask(
+    @Param('taskId') taskId: string,
+    @Req() request: AuthenticatedRequest,
+    @Body() dto: AssignTaskDto,
+  ) {
+    return this.tasksService.assignTask(
+      taskId,
+      request.resourceOrganizationId!,
+      dto,
+    );
   }
 
   @ApiOperation({ summary: 'Remove the assigned user from a task' })
@@ -207,14 +139,7 @@ export class TasksController {
   })
   @Delete(':taskId/assignee')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(
-    JwtAuthGuard,
-    OrganizationGuard,
-    ProjectGuard,
-    BoardGuard,
-    TaskGuard,
-    RolesGuard,
-  )
+  @UseGuards(JwtAuthGuard, TaskGuard, RolesGuard)
   @Roles(
     OrganizationRole.OWNER,
     OrganizationRole.ADMIN,
@@ -236,14 +161,7 @@ export class TasksController {
     },
   })
   @Patch(':taskId/status')
-  @UseGuards(
-    JwtAuthGuard,
-    OrganizationGuard,
-    ProjectGuard,
-    BoardGuard,
-    TaskGuard,
-    RolesGuard,
-  )
+  @UseGuards(JwtAuthGuard, TaskGuard, RolesGuard)
   @Roles(
     OrganizationRole.OWNER,
     OrganizationRole.ADMIN,
@@ -271,14 +189,7 @@ export class TasksController {
     },
   })
   @Patch(':taskId/priority')
-  @UseGuards(
-    JwtAuthGuard,
-    OrganizationGuard,
-    ProjectGuard,
-    BoardGuard,
-    TaskGuard,
-    RolesGuard,
-  )
+  @UseGuards(JwtAuthGuard, TaskGuard, RolesGuard)
   @Roles(
     OrganizationRole.OWNER,
     OrganizationRole.ADMIN,
