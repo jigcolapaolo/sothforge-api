@@ -17,16 +17,38 @@ export class AuthorizationService {
     });
   }
 
-  async getProjectContext(projectId: string) {
-    return this.prisma.project.findUnique({
+  async getProjectContext(
+    userId: string,
+    projectId: string,
+  ): Promise<ResourceAuthorizationContext | null> {
+    const project = await this.prisma.project.findUnique({
       where: {
         id: projectId,
       },
       select: {
-        id: true,
         organizationId: true,
       },
     });
+
+    if (!project) {
+      return null;
+    }
+
+    const resourceOrganizationId = project.organizationId;
+
+    const membership = await this.getOrganizationMembership(
+      userId,
+      resourceOrganizationId,
+    );
+
+    if (!membership) {
+      return null;
+    }
+
+    return {
+      membership,
+      resourceOrganizationId,
+    };
   }
 
   async getBoardContext(
