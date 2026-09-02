@@ -15,7 +15,7 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { OrganizationsService } from './organizations.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { OrganizationGuard } from 'src/auth/guards/organization.guard';
+import { OrganizationGuard } from './guards/organization.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { OrganizationRole } from 'src/generated/prisma/enums';

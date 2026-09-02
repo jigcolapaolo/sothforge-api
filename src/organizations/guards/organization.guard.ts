@@ -4,31 +4,28 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { PrismaService } from 'src/database/prisma.service';
-import { OrganizationRequest } from '../types/organization-request';
+import { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
+import { AuthorizationService } from 'src/common/authorization/authorization.service';
 
 @Injectable()
 export class OrganizationGuard implements CanActivate {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly authorizationService: AuthorizationService) {}
 
   async canActivate(context: ExecutionContext) {
-    const request = context.switchToHttp().getRequest<OrganizationRequest>();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
     const userId = request.user?.userId;
     const organizationId = request.params.organizationId;
 
-    if (!userId || !organizationId) {
+    if (!userId || typeof organizationId !== 'string') {
       throw new ForbiddenException('Organization access denied');
     }
 
-    const membership = await this.prisma.organizationMember.findUnique({
-      where: {
-        userId_organizationId: {
-          userId,
-          organizationId,
-        },
-      },
-    });
+    const membership =
+      await this.authorizationService.getOrganizationMembership(
+        userId,
+        organizationId,
+      );
 
     if (!membership) {
       throw new ForbiddenException('User does not belong to this organization');
