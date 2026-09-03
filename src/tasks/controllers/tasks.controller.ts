@@ -43,8 +43,8 @@ export class TasksController {
   @ApiResponse({ status: 404, description: 'Task not found' })
   @Get(':taskId')
   @UseGuards(JwtAuthGuard, TaskGuard)
-  findOne(@Param('boardId') boardId: string, @Param('taskId') taskId: string) {
-    return this.tasksService.findOne(boardId, taskId);
+  findOne(@Param('taskId') taskId: string) {
+    return this.tasksService.findOne(taskId);
   }
 
   @ApiOperation({ summary: 'Update a task' })
@@ -65,12 +65,8 @@ export class TasksController {
     OrganizationRole.ADMIN,
     OrganizationRole.MEMBER,
   )
-  update(
-    @Param('boardId') boardId: string,
-    @Param('taskId') taskId: string,
-    @Body() dto: UpdateTaskDto,
-  ) {
-    return this.tasksService.update(boardId, taskId, dto);
+  update(@Param('taskId') taskId: string, @Body() dto: UpdateTaskDto) {
+    return this.tasksService.update(taskId, dto);
   }
 
   @ApiOperation({ summary: 'Delete a task' })
@@ -91,8 +87,8 @@ export class TasksController {
     OrganizationRole.ADMIN,
     OrganizationRole.MEMBER,
   )
-  remove(@Param('boardId') boardId: string, @Param('taskId') taskId: string) {
-    return this.tasksService.remove(boardId, taskId);
+  remove(@Param('taskId') taskId: string) {
+    return this.tasksService.remove(taskId);
   }
 
   @ApiOperation({ summary: 'Assign a user to a task' })

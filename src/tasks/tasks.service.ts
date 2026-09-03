@@ -128,11 +128,10 @@ export class TasksService {
     };
   }
 
-  async findOne(boardId: string, taskId: string) {
+  async findOne(taskId: string) {
     const task = await this.prisma.task.findFirst({
       where: {
         id: taskId,
-        boardId,
       },
     });
 
@@ -143,11 +142,10 @@ export class TasksService {
     return task;
   }
 
-  async update(boardId: string, taskId: string, dto: UpdateTaskDto) {
+  async update(taskId: string, dto: UpdateTaskDto) {
     const task = await this.prisma.task.findFirst({
       where: {
         id: taskId,
-        boardId,
       },
     });
 
@@ -173,11 +171,10 @@ export class TasksService {
     });
   }
 
-  async remove(boardId: string, taskId: string) {
+  async remove(taskId: string) {
     const task = await this.prisma.task.findFirst({
       where: {
         id: taskId,
-        boardId,
       },
     });
 

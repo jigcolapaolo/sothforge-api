@@ -36,11 +36,8 @@ export class ProjectsController {
   @ApiResponse({ status: 404, description: 'Project not found' })
   @Get(':projectId')
   @UseGuards(JwtAuthGuard, ProjectGuard)
-  findOne(
-    @Param('organizationId') organizationId: string,
-    @Param('projectId') projectId: string,
-  ) {
-    return this.projectsService.findOne(organizationId, projectId);
+  findOne(@Param('projectId') projectId: string) {
+    return this.projectsService.findOne(projectId);
   }
 
   @ApiOperation({ summary: 'Update a project' })
@@ -57,12 +54,8 @@ export class ProjectsController {
   @Patch(':projectId')
   @UseGuards(JwtAuthGuard, ProjectGuard, RolesGuard)
   @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
-  update(
-    @Param('organizationId') organizationId: string,
-    @Param('projectId') projectId: string,
-    @Body() dto: UpdateProjectDto,
-  ) {
-    return this.projectsService.update(organizationId, projectId, dto);
+  update(@Param('projectId') projectId: string, @Body() dto: UpdateProjectDto) {
+    return this.projectsService.update(projectId, dto);
   }
 
   @ApiOperation({ summary: 'Delete a project' })
@@ -79,10 +72,7 @@ export class ProjectsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, ProjectGuard, RolesGuard)
   @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
-  remove(
-    @Param('organizationId') organizationId: string,
-    @Param('projectId') projectId: string,
-  ) {
-    return this.projectsService.remove(organizationId, projectId);
+  remove(@Param('projectId') projectId: string) {
+    return this.projectsService.remove(projectId);
   }
 }

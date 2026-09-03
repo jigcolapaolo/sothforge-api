@@ -36,11 +36,8 @@ export class BoardsController {
   @ApiResponse({ status: 404, description: 'Board not found' })
   @Get(':boardId')
   @UseGuards(JwtAuthGuard, BoardGuard)
-  findOne(
-    @Param('projectId') projectId: string,
-    @Param('boardId') boardId: string,
-  ) {
-    return this.boardsService.findOne(projectId, boardId);
+  findOne(@Param('boardId') boardId: string) {
+    return this.boardsService.findOne(boardId);
   }
 
   @ApiOperation({ summary: 'Update a board' })
@@ -61,12 +58,8 @@ export class BoardsController {
     OrganizationRole.ADMIN,
     OrganizationRole.MEMBER,
   )
-  update(
-    @Param('projectId') projectId: string,
-    @Param('boardId') boardId: string,
-    @Body() dto: UpdateBoardDto,
-  ) {
-    return this.boardsService.update(projectId, boardId, dto);
+  update(@Param('boardId') boardId: string, @Body() dto: UpdateBoardDto) {
+    return this.boardsService.update(boardId, dto);
   }
 
   @ApiOperation({ summary: 'Delete a board' })
@@ -87,10 +80,7 @@ export class BoardsController {
     OrganizationRole.ADMIN,
     OrganizationRole.MEMBER,
   )
-  remove(
-    @Param('projectId') projectId: string,
-    @Param('boardId') boardId: string,
-  ) {
-    return this.boardsService.remove(projectId, boardId);
+  remove(@Param('boardId') boardId: string) {
+    return this.boardsService.remove(boardId);
   }
 }
