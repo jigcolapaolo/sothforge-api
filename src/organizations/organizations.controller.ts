@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
@@ -30,6 +31,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 
 @ApiTags('Organizations')
 @ApiBearerAuth()
@@ -97,9 +99,12 @@ export class OrganizationsController {
   @UseGuards(JwtAuthGuard, OrganizationGuard)
   findOne(
     @Param('organizationId') organizationId: string,
-    @CurrentUser() user: AuthenticatedUser,
+    @Req() request: AuthenticatedRequest,
   ) {
-    return this.organizationsService.findOne(organizationId, user.userId);
+    return this.organizationsService.findOne(
+      organizationId,
+      request.organizationMembership!,
+    );
   }
 
   @ApiOperation({ summary: 'Update an organization' })
@@ -335,12 +340,12 @@ export class OrganizationsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, OrganizationGuard)
   leaveOrganization(
-    @CurrentUser() user: AuthenticatedUser,
     @Param('organizationId') organizationId: string,
+    @Req() request: AuthenticatedRequest,
   ) {
     return this.organizationsService.leaveOrganization(
-      user.userId,
       organizationId,
+      request.organizationMembership!,
     );
   }
 
