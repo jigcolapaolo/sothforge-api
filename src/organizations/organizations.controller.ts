@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
@@ -15,7 +16,7 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { OrganizationsService } from './organizations.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { OrganizationGuard } from 'src/auth/guards/organization.guard';
+import { OrganizationGuard } from './guards/organization.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { OrganizationRole } from 'src/generated/prisma/enums';
@@ -30,6 +31,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 
 @ApiTags('Organizations')
 @ApiBearerAuth()
@@ -97,9 +99,12 @@ export class OrganizationsController {
   @UseGuards(JwtAuthGuard, OrganizationGuard)
   findOne(
     @Param('organizationId') organizationId: string,
-    @CurrentUser() user: AuthenticatedUser,
+    @Req() request: AuthenticatedRequest,
   ) {
-    return this.organizationsService.findOne(organizationId, user.userId);
+    return this.organizationsService.findOne(
+      organizationId,
+      request.organizationMembership!,
+    );
   }
 
   @ApiOperation({ summary: 'Update an organization' })
@@ -335,12 +340,12 @@ export class OrganizationsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, OrganizationGuard)
   leaveOrganization(
-    @CurrentUser() user: AuthenticatedUser,
     @Param('organizationId') organizationId: string,
+    @Req() request: AuthenticatedRequest,
   ) {
     return this.organizationsService.leaveOrganization(
-      user.userId,
       organizationId,
+      request.organizationMembership!,
     );
   }
 

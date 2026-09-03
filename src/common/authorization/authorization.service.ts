@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/database/prisma.service';
+import { ResourceAuthorizationContext } from './types/resource-autorization-context';
 
 @Injectable()
 export class AuthorizationService {
@@ -16,26 +17,49 @@ export class AuthorizationService {
     });
   }
 
-  async getProjectContext(projectId: string) {
-    return this.prisma.project.findUnique({
+  async getProjectContext(
+    userId: string,
+    projectId: string,
+  ): Promise<ResourceAuthorizationContext | null> {
+    const project = await this.prisma.project.findUnique({
       where: {
         id: projectId,
       },
       select: {
-        id: true,
         organizationId: true,
       },
     });
+
+    if (!project) {
+      return null;
+    }
+
+    const resourceOrganizationId = project.organizationId;
+
+    const membership = await this.getOrganizationMembership(
+      userId,
+      resourceOrganizationId,
+    );
+
+    if (!membership) {
+      return null;
+    }
+
+    return {
+      membership,
+      resourceOrganizationId,
+    };
   }
 
-  async getBoardContext(boardId: string) {
-    return this.prisma.board.findUnique({
+  async getBoardContext(
+    userId: string,
+    boardId: string,
+  ): Promise<ResourceAuthorizationContext | null> {
+    const board = await this.prisma.board.findUnique({
       where: {
         id: boardId,
       },
       select: {
-        id: true,
-        projectId: true,
         project: {
           select: {
             organizationId: true,
@@ -43,19 +67,39 @@ export class AuthorizationService {
         },
       },
     });
+
+    if (!board) {
+      return null;
+    }
+
+    const resourceOrganizationId = board.project.organizationId;
+
+    const membership = await this.getOrganizationMembership(
+      userId,
+      resourceOrganizationId,
+    );
+
+    if (!membership) {
+      return null;
+    }
+
+    return {
+      membership,
+      resourceOrganizationId,
+    };
   }
 
-  async getTaskContext(taskId: string) {
-    return this.prisma.task.findUnique({
+  async getTaskContext(
+    userId: string,
+    taskId: string,
+  ): Promise<ResourceAuthorizationContext | null> {
+    const task = await this.prisma.task.findUnique({
       where: {
         id: taskId,
       },
       select: {
-        id: true,
-        boardId: true,
         board: {
           select: {
-            projectId: true,
             project: {
               select: {
                 organizationId: true,
@@ -65,5 +109,22 @@ export class AuthorizationService {
         },
       },
     });
+
+    if (!task) {
+      return null;
+    }
+
+    const resourceOrganizationId = task.board.project.organizationId;
+
+    const membership = await this.getOrganizationMembership(
+      userId,
+      resourceOrganizationId,
+    );
+
+    if (!membership) {
+      return null;
+    }
+
+    return { membership, resourceOrganizationId };
   }
 }

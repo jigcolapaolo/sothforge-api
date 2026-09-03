@@ -11,6 +11,7 @@ import { OrganizationRole } from 'src/generated/prisma/enums';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
+import { OrganizationMember } from 'src/generated/prisma/client';
 
 @Injectable()
 export class OrganizationsService {
@@ -72,34 +73,25 @@ export class OrganizationsService {
     });
   }
 
-  async findOne(organizationId: string, userId: string) {
-    const membership = await this.prisma.organizationMember.findUnique({
+  async findOne(organizationId: string, membership: OrganizationMember) {
+    const organization = await this.prisma.organization.findUnique({
       where: {
-        userId_organizationId: {
-          userId,
-          organizationId,
-        },
+        id: organizationId,
       },
-      select: {
-        role: true,
-        joinedAt: true,
-        organization: {
-          include: {
-            _count: {
-              select: {
-                members: true,
-              },
-            },
+      include: {
+        _count: {
+          select: {
+            members: true,
           },
         },
       },
     });
 
-    if (!membership) {
-      return null;
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
     }
 
-    const { _count, ...organizationData } = membership.organization;
+    const { _count, ...organizationData } = organization;
 
     return {
       ...organizationData,
@@ -203,7 +195,7 @@ export class OrganizationsService {
 
   async updateMemberRole(
     organizationId: string,
-    userId: string,
+    memberUserId: string,
     dto: UpdateMemberRoleDto,
   ) {
     if (dto.role === OrganizationRole.OWNER) {
@@ -215,7 +207,7 @@ export class OrganizationsService {
     const membership = await this.prisma.organizationMember.findUnique({
       where: {
         userId_organizationId: {
-          userId,
+          userId: memberUserId,
           organizationId,
         },
       },
@@ -234,7 +226,7 @@ export class OrganizationsService {
     return this.prisma.organizationMember.update({
       where: {
         userId_organizationId: {
-          userId,
+          userId: memberUserId,
           organizationId,
         },
       },
@@ -308,10 +300,10 @@ export class OrganizationsService {
 
   async removeMember(
     organizationId: string,
-    userId: string,
+    memberUserId: string,
     currentUserId: string,
   ) {
-    if (userId === currentUserId) {
+    if (memberUserId === currentUserId) {
       throw new ForbiddenException(
         'You cannot remove yourself using this endpoint',
       );
@@ -320,7 +312,7 @@ export class OrganizationsService {
     const membership = await this.prisma.organizationMember.findUnique({
       where: {
         userId_organizationId: {
-          userId,
+          userId: memberUserId,
           organizationId,
         },
       },
@@ -339,27 +331,17 @@ export class OrganizationsService {
     await this.prisma.organizationMember.delete({
       where: {
         userId_organizationId: {
-          userId,
+          userId: memberUserId,
           organizationId,
         },
       },
     });
   }
 
-  async leaveOrganization(userId: string, organizationId: string) {
-    const membership = await this.prisma.organizationMember.findUnique({
-      where: {
-        userId_organizationId: {
-          userId,
-          organizationId,
-        },
-      },
-    });
-
-    if (!membership) {
-      throw new NotFoundException('User does not belong to this organization');
-    }
-
+  async leaveOrganization(
+    organizationId: string,
+    membership: OrganizationMember,
+  ) {
     if (membership.role === OrganizationRole.OWNER) {
       throw new ForbiddenException(
         'Owner must transfer ownership before leaving the organization',
@@ -369,7 +351,7 @@ export class OrganizationsService {
     await this.prisma.organizationMember.delete({
       where: {
         userId_organizationId: {
-          userId,
+          userId: membership.userId,
           organizationId,
         },
       },

@@ -27,11 +27,10 @@ export class BoardsService {
     });
   }
 
-  async findOne(projectId: string, boardId: string) {
+  async findOne(boardId: string) {
     const board = await this.prisma.board.findFirst({
       where: {
         id: boardId,
-        projectId,
       },
     });
 
@@ -42,11 +41,10 @@ export class BoardsService {
     return board;
   }
 
-  async update(projectId: string, boardId: string, dto: UpdateBoardDto) {
+  async update(boardId: string, dto: UpdateBoardDto) {
     const board = await this.prisma.board.findFirst({
       where: {
         id: boardId,
-        projectId,
       },
     });
 
@@ -64,11 +62,10 @@ export class BoardsService {
     });
   }
 
-  async remove(projectId: string, boardId: string) {
+  async remove(boardId: string) {
     const board = await this.prisma.board.findFirst({
       where: {
         id: boardId,
-        projectId,
       },
     });
 

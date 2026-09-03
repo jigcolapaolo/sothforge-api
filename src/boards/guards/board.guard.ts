@@ -4,33 +4,35 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { PrismaService } from 'src/database/prisma.service';
-import { BoardRequest } from '../types/board.request';
+
+import { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
+import { AuthorizationService } from 'src/common/authorization/authorization.service';
 
 @Injectable()
 export class BoardGuard implements CanActivate {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly authorizationService: AuthorizationService) {}
 
   async canActivate(context: ExecutionContext) {
-    const request = context.switchToHttp().getRequest<BoardRequest>();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
-    const projectId = request.params.projectId;
+    const userId = request.user?.userId;
     const boardId = request.params.boardId;
 
-    if (!projectId || !boardId) {
+    if (!userId || typeof boardId !== 'string') {
       throw new ForbiddenException('Board access denied');
     }
 
-    const board = await this.prisma.board.findUnique({
-      where: {
-        id: boardId,
-        projectId,
-      },
-    });
+    const boardContext = await this.authorizationService.getBoardContext(
+      userId,
+      boardId,
+    );
 
-    if (!board) {
-      throw new ForbiddenException('Board does not belong to this project');
+    if (!boardContext) {
+      throw new ForbiddenException('Board access denied');
     }
+
+    request.organizationMembership = boardContext.membership;
+    request.resourceOrganizationId = boardContext.resourceOrganizationId;
 
     return true;
   }

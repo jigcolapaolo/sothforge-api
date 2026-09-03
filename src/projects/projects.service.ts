@@ -30,10 +30,9 @@ export class ProjectsService {
     });
   }
 
-  async findOne(organizationId: string, projectId: string) {
+  async findOne(projectId: string) {
     const project = await this.prisma.project.findFirst({
       where: {
-        organizationId,
         id: projectId,
       },
     });
@@ -45,15 +44,10 @@ export class ProjectsService {
     return project;
   }
 
-  async update(
-    organizationId: string,
-    projectId: string,
-    dto: UpdateProjectDto,
-  ) {
+  async update(projectId: string, dto: UpdateProjectDto) {
     const project = await this.prisma.project.findFirst({
       where: {
         id: projectId,
-        organizationId,
       },
     });
 
@@ -73,11 +67,10 @@ export class ProjectsService {
     });
   }
 
-  async remove(organizationId: string, projectId: string) {
+  async remove(projectId: string) {
     const project = await this.prisma.project.findFirst({
       where: {
         id: projectId,
-        organizationId,
       },
     });
 
