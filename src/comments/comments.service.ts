@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/database/prisma.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { commentSelect } from './constants/comment.select';
+import { UpdateCommentDto } from './dto/update-comment.dto';
 
 @Injectable()
 export class CommentsService {
@@ -31,7 +36,7 @@ export class CommentsService {
   }
 
   async findOne(commentId: string) {
-    const comment = await this.prisma.comment.findFirst({
+    const comment = await this.prisma.comment.findUnique({
       where: {
         id: commentId,
       },
@@ -43,5 +48,38 @@ export class CommentsService {
     }
 
     return comment;
+  }
+
+  async update(
+    commentId: string,
+    currentUserId: string,
+    dto: UpdateCommentDto,
+  ) {
+    const comment = await this.prisma.comment.findUnique({
+      where: {
+        id: commentId,
+      },
+      select: {
+        authorId: true,
+      },
+    });
+
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    if (currentUserId !== comment.authorId) {
+      throw new ForbiddenException('You can only edit your own comments');
+    }
+
+    return this.prisma.comment.update({
+      where: {
+        id: commentId,
+      },
+      data: {
+        content: dto.content,
+      },
+      select: commentSelect,
+    });
   }
 }

@@ -1,7 +1,13 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { CommentsService } from '../comments.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CommentGuard } from '../guards/comment.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { OrganizationRole } from 'src/generated/prisma/enums';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
+import { UpdateCommentDto } from '../dto/update-comment.dto';
 
 @Controller('comments')
 export class CommentsController {
@@ -11,5 +17,20 @@ export class CommentsController {
   @UseGuards(JwtAuthGuard, CommentGuard)
   findOne(@Param('commentId') commentId: string) {
     return this.commentsService.findOne(commentId);
+  }
+
+  @Patch(':commentId')
+  @UseGuards(JwtAuthGuard, CommentGuard, RolesGuard)
+  @Roles(
+    OrganizationRole.OWNER,
+    OrganizationRole.ADMIN,
+    OrganizationRole.MEMBER,
+  )
+  update(
+    @Param('commentId') commentId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateCommentDto,
+  ) {
+    return this.commentsService.update(commentId, user.userId, dto);
   }
 }
