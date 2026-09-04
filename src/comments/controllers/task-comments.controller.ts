@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { CommentsService } from '../comments.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { TaskGuard } from 'src/tasks/guards/task.guard';
@@ -26,5 +26,11 @@ export class TaskCommentsController {
     @Body() dto: CreateCommentDto,
   ) {
     return this.commentsService.create(taskId, user.userId, dto);
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, TaskGuard)
+  findAll(@Param('taskId') taskId: string) {
+    return this.commentsService.findAll(taskId);
   }
 }

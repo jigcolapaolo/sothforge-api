@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/database/prisma.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { commentSelect } from './constants/comment.select';
 
 @Injectable()
 export class CommentsService {
@@ -13,18 +14,18 @@ export class CommentsService {
         authorId,
         content: dto.content,
       },
-      select: {
-        id: true,
-        content: true,
-        createdAt: true,
-        updatedAt: true,
-        author: {
-          select: {
-            id: true,
-            username: true,
-            avatar: true,
-          },
-        },
+      select: commentSelect,
+    });
+  }
+
+  async findAll(taskId: string) {
+    return this.prisma.comment.findMany({
+      where: {
+        taskId,
+      },
+      select: commentSelect,
+      orderBy: {
+        createdAt: 'desc',
       },
     });
   }
