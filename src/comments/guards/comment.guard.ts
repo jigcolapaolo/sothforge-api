@@ -15,7 +15,7 @@ export class CommentGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
     const userId = request.user?.userId;
-    const commentId = request.params.taskId;
+    const commentId = request.params.commentId;
 
     if (!userId || typeof commentId !== 'string') {
       throw new ForbiddenException('Comment access denied');

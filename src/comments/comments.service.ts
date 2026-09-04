@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/database/prisma.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { commentSelect } from './constants/comment.select';
@@ -28,5 +28,20 @@ export class CommentsService {
         createdAt: 'desc',
       },
     });
+  }
+
+  async findOne(commentId: string) {
+    const comment = await this.prisma.comment.findFirst({
+      where: {
+        id: commentId,
+      },
+      select: commentSelect,
+    });
+
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    return comment;
   }
 }
