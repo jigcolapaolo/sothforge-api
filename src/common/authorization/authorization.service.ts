@@ -127,4 +127,50 @@ export class AuthorizationService {
 
     return { membership, resourceOrganizationId };
   }
+
+  async getCommentContext(
+    userId: string,
+    commentId: string,
+  ): Promise<ResourceAuthorizationContext | null> {
+    const comment = await this.prisma.comment.findUnique({
+      where: {
+        id: commentId,
+      },
+      select: {
+        task: {
+          select: {
+            board: {
+              select: {
+                project: {
+                  select: {
+                    organizationId: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!comment) {
+      return null;
+    }
+
+    const resourceOrganizationId = comment.task.board.project.organizationId;
+
+    const membership = await this.getOrganizationMembership(
+      userId,
+      resourceOrganizationId,
+    );
+
+    if (!membership) {
+      return null;
+    }
+
+    return {
+      membership,
+      resourceOrganizationId,
+    };
+  }
 }
