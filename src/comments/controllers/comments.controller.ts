@@ -20,6 +20,7 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 import { UpdateCommentDto } from '../dto/update-comment.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('comments')
 export class CommentsController {
@@ -31,6 +32,12 @@ export class CommentsController {
     return this.commentsService.findOne(commentId);
   }
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Patch(':commentId')
   @UseGuards(JwtAuthGuard, CommentGuard, RolesGuard)
   @Roles(
@@ -46,6 +53,12 @@ export class CommentsController {
     return this.commentsService.update(commentId, user.userId, dto);
   }
 
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 60_000,
+    },
+  })
   @Delete(':commentId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, CommentGuard, RolesGuard)

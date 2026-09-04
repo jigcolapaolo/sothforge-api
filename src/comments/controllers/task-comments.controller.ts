@@ -8,11 +8,18 @@ import { OrganizationRole } from 'src/generated/prisma/enums';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
 import { CreateCommentDto } from '../dto/create-comment.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('tasks/:taskId/comments')
 export class TaskCommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Post()
   @UseGuards(JwtAuthGuard, TaskGuard, RolesGuard)
   @Roles(
