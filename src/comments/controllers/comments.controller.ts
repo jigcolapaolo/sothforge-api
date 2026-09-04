@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { CommentsService } from '../comments.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CommentGuard } from '../guards/comment.guard';
@@ -7,6 +18,7 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
+import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 import { UpdateCommentDto } from '../dto/update-comment.dto';
 
 @Controller('comments')
@@ -32,5 +44,23 @@ export class CommentsController {
     @Body() dto: UpdateCommentDto,
   ) {
     return this.commentsService.update(commentId, user.userId, dto);
+  }
+
+  @Delete(':commentId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, CommentGuard, RolesGuard)
+  @Roles(
+    OrganizationRole.OWNER,
+    OrganizationRole.ADMIN,
+    OrganizationRole.MEMBER,
+  )
+  remove(
+    @Param('commentId') commentId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.commentsService.remove(
+      commentId,
+      request.organizationMembership!,
+    );
   }
 }
