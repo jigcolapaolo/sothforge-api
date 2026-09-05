@@ -183,6 +183,8 @@ model Label {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   tasks        TaskLabel[]
 
+  // Nombres unicos por organizacion
+  @@unique([organizationId, name])
   @@index([organizationId])
 }
 
