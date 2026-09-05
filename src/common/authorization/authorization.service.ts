@@ -173,4 +173,38 @@ export class AuthorizationService {
       resourceOrganizationId,
     };
   }
+
+  async getLabelContext(
+    userId: string,
+    labelId: string,
+  ): Promise<ResourceAuthorizationContext | null> {
+    const label = await this.prisma.label.findUnique({
+      where: {
+        id: labelId,
+      },
+      select: {
+        organizationId: true,
+      },
+    });
+
+    if (!label) {
+      return null;
+    }
+
+    const resourceOrganizationId = label.organizationId;
+
+    const membership = await this.getOrganizationMembership(
+      userId,
+      resourceOrganizationId,
+    );
+
+    if (!membership) {
+      return null;
+    }
+
+    return {
+      membership,
+      resourceOrganizationId,
+    };
+  }
 }
