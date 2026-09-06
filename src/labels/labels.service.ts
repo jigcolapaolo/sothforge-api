@@ -41,6 +41,20 @@ export class LabelsService {
     });
   }
 
+  async findOne(labelId: string) {
+    const label = await this.prisma.label.findUnique({
+      where: {
+        id: labelId,
+      },
+    });
+
+    if (!label) {
+      throw new NotFoundException('Label not found');
+    }
+
+    return label;
+  }
+
   async update(labelId: string, dto: UpdateLabelDto) {
     const label = await this.prisma.label.findUnique({
       where: {
