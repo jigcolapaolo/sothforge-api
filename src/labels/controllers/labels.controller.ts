@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  UseGuards,
+} from '@nestjs/common';
 import { LabelsService } from '../labels.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { LabelGuard } from '../guards/label.guard';
@@ -26,5 +36,13 @@ export class LabelsController {
   )
   update(@Param('labelId') labelId: string, @Body() dto: UpdateLabelDto) {
     return this.labelsService.update(labelId, dto);
+  }
+
+  @Delete(':labelId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, LabelGuard, RolesGuard)
+  @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
+  remove(@Param('labelId') labelId: string) {
+    return this.labelsService.remove(labelId);
   }
 }

@@ -107,4 +107,22 @@ export class LabelsService {
       );
     }
   }
+
+  async remove(labelId: string) {
+    const label = await this.prisma.label.findUnique({
+      where: {
+        id: labelId,
+      },
+    });
+
+    if (!label) {
+      throw new NotFoundException('Label not found');
+    }
+
+    await this.prisma.label.delete({
+      where: {
+        id: labelId,
+      },
+    });
+  }
 }
