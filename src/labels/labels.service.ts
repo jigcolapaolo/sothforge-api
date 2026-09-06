@@ -1,6 +1,7 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/database/prisma.service';
 import { CreateLabelDto } from './dto/create-label.dto';
+import { LabelQueryDto } from './dto/label-query.dto';
 
 @Injectable()
 export class LabelsService {
@@ -25,6 +26,23 @@ export class LabelsService {
         organizationId,
         name: dto.name,
         color: dto.color,
+      },
+    });
+  }
+
+  async findAll(organizationId: string, query: LabelQueryDto) {
+    return this.prisma.label.findMany({
+      where: {
+        organizationId,
+        ...(query.search && {
+          name: {
+            contains: query.search,
+            mode: 'insensitive',
+          },
+        }),
+      },
+      orderBy: {
+        name: 'asc',
       },
     });
   }
