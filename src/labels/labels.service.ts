@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -122,6 +123,51 @@ export class LabelsService {
     await this.prisma.label.delete({
       where: {
         id: labelId,
+      },
+    });
+  }
+
+  async assignToTask(
+    taskId: string,
+    labelId: string,
+    taskOrganizationId: string,
+  ) {
+    const label = await this.prisma.label.findUnique({
+      where: {
+        id: labelId,
+      },
+      select: {
+        organizationId: true,
+      },
+    });
+
+    if (!label) {
+      throw new NotFoundException('Label not found');
+    }
+
+    if (label.organizationId !== taskOrganizationId) {
+      throw new BadRequestException(
+        'The label does not belong to the task organization',
+      );
+    }
+
+    const existingTaskLabel = await this.prisma.taskLabel.findUnique({
+      where: {
+        taskId_labelId: {
+          taskId,
+          labelId,
+        },
+      },
+    });
+
+    if (existingTaskLabel) {
+      throw new ConflictException('The label is already assigned to this task');
+    }
+
+    return this.prisma.taskLabel.create({
+      data: {
+        taskId,
+        labelId,
       },
     });
   }
