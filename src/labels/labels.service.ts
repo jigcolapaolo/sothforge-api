@@ -171,4 +171,28 @@ export class LabelsService {
       },
     });
   }
+
+  async removeFromTask(taskId: string, labelId: string) {
+    const taskLabel = await this.prisma.taskLabel.findUnique({
+      where: {
+        taskId_labelId: {
+          taskId,
+          labelId,
+        },
+      },
+    });
+
+    if (!taskLabel) {
+      throw new NotFoundException('The label is not assigned to this task');
+    }
+
+    await this.prisma.taskLabel.delete({
+      where: {
+        taskId_labelId: {
+          taskId,
+          labelId,
+        },
+      },
+    });
+  }
 }
