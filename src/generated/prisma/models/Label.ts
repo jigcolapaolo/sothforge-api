@@ -198,6 +198,7 @@ export type LabelOrderByWithRelationInput = {
 
 export type LabelWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  organizationId_name?: Prisma.LabelOrganizationIdNameCompoundUniqueInput
   AND?: Prisma.LabelWhereInput | Prisma.LabelWhereInput[]
   OR?: Prisma.LabelWhereInput[]
   NOT?: Prisma.LabelWhereInput | Prisma.LabelWhereInput[]
@@ -207,7 +208,7 @@ export type LabelWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Label"> | Date | string
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
   tasks?: Prisma.TaskLabelListRelationFilter
-}, "id">
+}, "id" | "organizationId_name">
 
 export type LabelOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -298,6 +299,11 @@ export type LabelListRelationFilter = {
 
 export type LabelOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type LabelOrganizationIdNameCompoundUniqueInput = {
+  organizationId: string
+  name: string
 }
 
 export type LabelCountOrderByAggregateInput = {

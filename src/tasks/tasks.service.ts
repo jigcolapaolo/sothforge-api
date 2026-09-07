@@ -110,6 +110,19 @@ export class TasksService {
         skip,
         take: limit,
         orderBy,
+        include: {
+          labels: {
+            select: {
+              label: {
+                select: {
+                  id: true,
+                  name: true,
+                  color: true,
+                },
+              },
+            },
+          },
+        },
       }),
 
       this.prisma.task.count({
@@ -117,8 +130,13 @@ export class TasksService {
       }),
     ]);
 
+    const data = tasks.map(({ labels, ...task }) => ({
+      ...task,
+      labels: labels.map(({ label }) => label),
+    }));
+
     return {
-      data: tasks,
+      data,
       meta: {
         page,
         limit,
@@ -133,13 +151,31 @@ export class TasksService {
       where: {
         id: taskId,
       },
+      include: {
+        labels: {
+          select: {
+            label: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!task) {
       throw new NotFoundException('Task not found');
     }
 
-    return task;
+    const { labels, ...taskData } = task;
+
+    return {
+      ...taskData,
+      labels: labels.map(({ label }) => label),
+    };
   }
 
   async update(taskId: string, dto: UpdateTaskDto) {
