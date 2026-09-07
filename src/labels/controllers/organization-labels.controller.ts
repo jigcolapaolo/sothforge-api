@@ -15,11 +15,18 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import { CreateLabelDto } from '../dto/create-label.dto';
 import { LabelQueryDto } from '../dto/label-query.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('organizations/:organizationId/labels')
 export class OrganizationLabelsController {
   constructor(private readonly labelsService: LabelsService) {}
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Post()
   @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
   @Roles(

@@ -16,6 +16,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import { UpdateLabelDto } from '../dto/update-label.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('labels')
 export class LabelsController {
@@ -27,6 +28,12 @@ export class LabelsController {
     return this.labelsService.findOne(labelId);
   }
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Patch(':labelId')
   @UseGuards(JwtAuthGuard, LabelGuard, RolesGuard)
   @Roles(
@@ -38,6 +45,12 @@ export class LabelsController {
     return this.labelsService.update(labelId, dto);
   }
 
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 60_000,
+    },
+  })
   @Delete(':labelId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, LabelGuard, RolesGuard)

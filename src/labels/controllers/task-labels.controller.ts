@@ -15,11 +15,18 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('tasks/:taskId/labels')
 export class TaskLabelsController {
   constructor(private readonly labelsService: LabelsService) {}
 
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60_000,
+    },
+  })
   @Post(':labelId')
   @UseGuards(JwtAuthGuard, TaskGuard, RolesGuard)
   @Roles(
@@ -39,6 +46,12 @@ export class TaskLabelsController {
     );
   }
 
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 60_000,
+    },
+  })
   @Delete(':labelId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, TaskGuard, RolesGuard)
