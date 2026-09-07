@@ -16,11 +16,49 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 import { Throttle } from '@nestjs/throttler';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
+@ApiTags('Labels')
+@ApiBearerAuth()
 @Controller('tasks/:taskId/labels')
 export class TaskLabelsController {
   constructor(private readonly labelsService: LabelsService) {}
 
+  @ApiOperation({ summary: 'Assign a label to a task' })
+  @ApiParam({
+    name: 'taskId',
+    description: 'Task ID',
+  })
+  @ApiParam({
+    name: 'labelId',
+    description: 'Label ID',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Label assigned successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Label does not belong to the task organization',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Label not found',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'The label is already assigned to this task',
+  })
   @Throttle({
     default: {
       limit: 10,
@@ -46,6 +84,27 @@ export class TaskLabelsController {
     );
   }
 
+  @ApiOperation({ summary: 'Remove a label from a task' })
+  @ApiParam({
+    name: 'taskId',
+    description: 'Task ID',
+  })
+  @ApiParam({
+    name: 'labelId',
+    description: 'Label ID',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Label removed successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'The label is not assigned to this task',
+  })
   @Throttle({
     default: {
       limit: 5,
