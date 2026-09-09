@@ -2,13 +2,17 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/database/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   async create(organizationId: string, dto: CreateProjectDto) {
-    return this.prisma.project.create({
+    const project = this.prisma.project.create({
       data: {
         organizationId,
         name: dto.name,
@@ -17,10 +21,22 @@ export class ProjectsService {
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
       },
     });
+
+    await this.redis.delete(`projects:${organizationId}`);
+
+    return project;
   }
 
   async findAll(organizationId: string) {
-    return this.prisma.project.findMany({
+    const cacheKey = `projects:${organizationId}`;
+
+    const cachedProjects = await this.redis.get(cacheKey);
+
+    if (cachedProjects) {
+      return JSON.parse(cachedProjects) as typeof projects;
+    }
+
+    const projects = await this.prisma.project.findMany({
       where: {
         organizationId,
       },
@@ -28,6 +44,10 @@ export class ProjectsService {
         createdAt: 'desc',
       },
     });
+
+    await this.redis.setWithTtl(cacheKey, JSON.stringify(projects), 60);
+
+    return projects;
   }
 
   async findOne(projectId: string) {
@@ -55,7 +75,7 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
 
-    return this.prisma.project.update({
+    const updatedProject = this.prisma.project.update({
       where: {
         id: projectId,
       },
@@ -65,6 +85,10 @@ export class ProjectsService {
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
       },
     });
+
+    await this.redis.delete(`projects:${project.organizationId}`);
+
+    return updatedProject;
   }
 
   async remove(projectId: string) {
@@ -83,5 +107,7 @@ export class ProjectsService {
         id: projectId,
       },
     });
+
+    await this.redis.delete(`projects:${project.organizationId}`);
   }
 }
