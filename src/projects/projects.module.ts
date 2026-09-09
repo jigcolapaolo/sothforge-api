@@ -7,9 +7,16 @@ import { ProjectGuard } from './guards/project.guard';
 import { OrganizationsModule } from 'src/organizations/organizations.module';
 import { AuthorizationModule } from 'src/common/authorization/authorization.module';
 import { OrganizationProjectsController } from './controllers/organization-projects.controller';
+import { RedisModule } from 'src/redis/redis.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, OrganizationsModule, AuthorizationModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    OrganizationsModule,
+    AuthorizationModule,
+    RedisModule,
+  ],
   controllers: [OrganizationProjectsController, ProjectsController],
   providers: [ProjectsService, ProjectGuard],
   exports: [ProjectGuard],
