@@ -30,6 +30,10 @@ describe('AuthService', () => {
       findFirst: jest.Mock;
       create: jest.Mock;
       findUnique: jest.Mock;
+      update: jest.Mock;
+    };
+    session: {
+      create: jest.Mock;
     };
   };
 
@@ -47,6 +51,10 @@ describe('AuthService', () => {
         findFirst: jest.fn(),
         create: jest.fn(),
         findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      session: {
+        create: jest.fn(),
       },
     };
 
@@ -234,6 +242,62 @@ describe('AuthService', () => {
         'WrongPassword123!',
         'hashed-password',
       );
+    });
+  });
+
+  describe('login', () => {
+    it('should login successfully and create a session', async () => {
+      const user = {
+        id: 'user-id',
+        username: 'john_doe',
+        email: 'john@example.com',
+        passwordHash: 'hashed-password',
+        avatar: null,
+        createdAt: new Date(),
+      };
+
+      prisma.user.findUnique.mockResolvedValue(user);
+
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      jwtService.signAsync.mockResolvedValue('access-token');
+
+      configService.getOrThrow.mockReturnValue('7d');
+
+      prisma.session.create.mockResolvedValue({
+        id: 'session-id',
+      });
+
+      prisma.user.update.mockResolvedValue(user);
+
+      const result = await service.login({
+        email: 'john@example.com',
+        password: 'Password123!',
+      });
+
+      expect(result.user).not.toHaveProperty('passwordHash');
+      expect(result.accessToken).toBe('access-token');
+      expect(result.refreshToken).toEqual(expect.any(String));
+
+      expect(prisma.session.create).toHaveBeenCalledWith({
+        data: {
+          userId: 'user-id',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          refreshTokenHash: expect.any(String),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          expiresAt: expect.any(Date),
+        },
+      });
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: {
+          id: 'user-id',
+        },
+        data: {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          lastLogin: expect.any(Date),
+        },
+      });
     });
   });
 });
