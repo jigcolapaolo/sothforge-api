@@ -29,6 +29,7 @@ describe('AuthService', () => {
     user: {
       findFirst: jest.Mock;
       create: jest.Mock;
+      findUnique: jest.Mock;
     };
   };
 
@@ -45,6 +46,7 @@ describe('AuthService', () => {
       user: {
         findFirst: jest.fn(),
         create: jest.fn(),
+        findUnique: jest.fn(),
       },
     };
 
@@ -149,6 +151,89 @@ describe('AuthService', () => {
 
       expect(prisma.user.create).not.toHaveBeenCalled();
       expect(bcrypt.hash).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('validateCredentials', () => {
+    it('should return the user without passwordHash when credentials are valid', async () => {
+      const user = {
+        id: 'user-id',
+        username: 'john_doe',
+        email: 'john@example.com',
+        passwordHash: 'hashed-password',
+        avatar: null,
+        createdAt: new Date(),
+      };
+
+      prisma.user.findUnique.mockResolvedValue(user);
+
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      const result = await service.validateCredentials(
+        'john@example.com',
+        'Password123!',
+      );
+
+      expect(result).toEqual({
+        id: 'user-id',
+        username: 'john_doe',
+        email: 'john@example.com',
+        avatar: null,
+        createdAt: user.createdAt,
+      });
+
+      expect(result).not.toHaveProperty('passwordHash');
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: {
+          email: 'john@example.com',
+        },
+      });
+
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        'Password123!',
+        'hashed-password',
+      );
+    });
+
+    it('should throw UnauthorizedException when user does not exist', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.validateCredentials('john@example.com', 'Password123!'),
+      ).rejects.toThrow('Invalid credentials');
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: {
+          email: 'john@example.com',
+        },
+      });
+
+      expect(bcrypt.compare).not.toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException when password is incorrect', async () => {
+      const user = {
+        id: 'user-id',
+        username: 'john_doe',
+        email: 'john@example.com',
+        passwordHash: 'hashed-password',
+        avatar: null,
+        createdAt: new Date(),
+      };
+
+      prisma.user.findUnique.mockResolvedValue(user);
+
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+      await expect(
+        service.validateCredentials('john@example.com', 'WrongPassword123!'),
+      ).rejects.toThrow('Invalid credentials');
+
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        'WrongPassword123!',
+        'hashed-password',
+      );
     });
   });
 });
