@@ -34,7 +34,10 @@ describe('AuthService', () => {
     };
     session: {
       create: jest.Mock;
+      findFirst: jest.Mock;
+      update: jest.Mock;
     };
+    $transaction: jest.Mock;
   };
 
   let jwtService: {
@@ -55,7 +58,10 @@ describe('AuthService', () => {
       },
       session: {
         create: jest.fn(),
+        findFirst: jest.fn(),
+        update: jest.fn(),
       },
+      $transaction: jest.fn(),
     };
 
     jwtService = {
@@ -298,6 +304,118 @@ describe('AuthService', () => {
           lastLogin: expect.any(Date),
         },
       });
+    });
+  });
+
+  describe('refresh', () => {
+    it('should rotate the refresh token successfully', async () => {
+      const session = {
+        id: 'session-id',
+        userId: 'user-id',
+        refreshTokenHash: 'old-refresh-token-hash',
+        expiresAt: new Date('2030-01-01'),
+        revokedAt: null,
+      };
+
+      const user = {
+        id: 'user-id',
+        email: 'john@example.com',
+      };
+
+      prisma.session.findFirst.mockResolvedValue(session);
+      prisma.user.findUnique.mockResolvedValue(user);
+
+      jwtService.signAsync.mockResolvedValue('new-access-token');
+      configService.getOrThrow.mockReturnValue('7d');
+
+      prisma.session.update.mockResolvedValue({
+        ...session,
+        revokedAt: new Date(),
+      });
+
+      prisma.session.create.mockResolvedValue({
+        id: 'new-session-id',
+      });
+
+      prisma.$transaction.mockResolvedValue([
+        {
+          ...session,
+          revokedAt: new Date(),
+        },
+        {
+          id: 'new-session-id',
+        },
+      ]);
+
+      const result = await service.refresh('old-refresh-token');
+
+      expect(result.accessToken).toBe('new-access-token');
+      expect(result.refreshToken).toEqual(expect.any(String));
+
+      expect(prisma.session.findFirst).toHaveBeenCalledWith({
+        where: {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          refreshTokenHash: expect.any(String),
+          revokedAt: null,
+          expiresAt: {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            gt: expect.any(Date),
+          },
+        },
+      });
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: {
+          id: 'user-id',
+        },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw UnauthorizedException when refresh token is invalid', async () => {
+      prisma.session.findFirst.mockResolvedValue(null);
+
+      await expect(service.refresh('invalid-refresh-token')).rejects.toThrow(
+        'Invalid refresh token',
+      );
+
+      expect(prisma.session.findFirst).toHaveBeenCalledTimes(1);
+      expect(prisma.user.findUnique).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException when session user does not exist', async () => {
+      const session = {
+        id: 'session-id',
+        userId: 'user-id',
+        refreshTokenHash: 'old-refresh-token-hash',
+        expiresAt: new Date('2030-01-01'),
+        revokedAt: null,
+      };
+
+      prisma.session.findFirst.mockResolvedValue(session);
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.refresh('old-refresh-token')).rejects.toThrow(
+        'Invalid refresh token',
+      );
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: {
+          id: 'user-id',
+        },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
     });
   });
 });
