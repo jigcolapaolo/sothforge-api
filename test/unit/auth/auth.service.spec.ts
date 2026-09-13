@@ -36,6 +36,7 @@ describe('AuthService', () => {
       create: jest.Mock;
       findFirst: jest.Mock;
       update: jest.Mock;
+      updateMany: jest.Mock;
     };
     $transaction: jest.Mock;
   };
@@ -60,6 +61,7 @@ describe('AuthService', () => {
         create: jest.fn(),
         findFirst: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn(),
       },
       $transaction: jest.fn(),
     };
@@ -416,6 +418,87 @@ describe('AuthService', () => {
       });
 
       expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('logout', () => {
+    it('should revoke the session successfully', async () => {
+      const session = {
+        id: 'session-id',
+        userId: 'user-id',
+        refreshTokenHash: 'refresh-token-hash',
+        expiresAt: new Date('2030-01-01'),
+        revokedAt: null,
+      };
+
+      prisma.session.findFirst.mockResolvedValue(session);
+
+      prisma.session.update.mockResolvedValue({
+        ...session,
+        revokedAt: new Date(),
+      });
+
+      await service.logout('refresh-token');
+
+      expect(prisma.session.findFirst).toHaveBeenCalledTimes(1);
+
+      expect(prisma.session.update).toHaveBeenCalledWith({
+        where: {
+          id: 'session-id',
+        },
+        data: {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          revokedAt: expect.any(Date),
+        },
+      });
+    });
+
+    it('should throw UnauthorizedException when refresh token is invalid', async () => {
+      prisma.session.findFirst.mockResolvedValue(null);
+
+      await expect(service.logout('invalid-refresh-token')).rejects.toThrow(
+        'Invalid refresh token',
+      );
+
+      expect(prisma.session.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('logoutAll', () => {
+    it('should revoke all sessions for the user', async () => {
+      prisma.session.updateMany = jest.fn().mockResolvedValue({
+        count: 2,
+      });
+
+      await service.logoutAll('user-id');
+
+      expect(prisma.session.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-id',
+        },
+        data: {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          revokedAt: expect.any(Date),
+        },
+      });
+    });
+
+    it('should complete successfully when the user has no active sessions', async () => {
+      prisma.session.updateMany = jest.fn().mockResolvedValue({
+        count: 0,
+      });
+
+      await expect(service.logoutAll('user-id')).resolves.toBeUndefined();
+
+      expect(prisma.session.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-id',
+        },
+        data: {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          revokedAt: expect.any(Date),
+        },
+      });
     });
   });
 });
