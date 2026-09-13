@@ -2,20 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthorizationService } from 'src/common/authorization/authorization.service';
 import { PrismaService } from 'src/database/prisma.service';
 
-jest.mock('src/generated/prisma/client', () => ({
-  PrismaClient: class PrismaClient {},
-  Prisma: {
-    PrismaClientKnownRequestError: class PrismaClientKnownRequestError extends Error {
-      code: string;
-
-      constructor(message: string, code: string) {
-        super(message);
-        this.code = code;
-      }
-    },
-  },
-}));
-
 describe('AuthorizationService', () => {
   let service: AuthorizationService;
 

@@ -10,6 +10,7 @@ const config: Config = {
   moduleNameMapper: {
     '^src/(.*)$': '<rootDir>/src/$1',
   },
+  setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
   testEnvironment: 'node',
   collectCoverageFrom: ['src/**/*.ts'],
   coverageDirectory: 'coverage',
