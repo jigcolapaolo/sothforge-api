@@ -7,10 +7,8 @@ import { PrismaService } from 'src/database/prisma.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { commentSelect } from './constants/comment.select';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import {
-  OrganizationMember,
-  OrganizationRole,
-} from 'src/generated/prisma/client';
+import { OrganizationMember } from 'src/generated/prisma/client';
+import { OrganizationRole } from 'src/generated/prisma/enums';
 
 @Injectable()
 export class CommentsService {
