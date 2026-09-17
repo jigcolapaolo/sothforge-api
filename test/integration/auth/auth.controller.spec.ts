@@ -5,7 +5,8 @@ import { AppModule } from 'src/app.module';
 import { PrismaService } from 'src/database/prisma.service';
 import { cleanDatabase } from '../cleanup';
 import * as bcrypt from 'bcrypt';
-import { Server } from 'node:http';
+import type { Server } from 'node:http';
+import { RedisService } from 'src/redis/redis.service';
 
 type LoginResponse = {
   accessToken: string;
@@ -17,9 +18,15 @@ type LoginResponse = {
   };
 };
 
+type RefreshResponse = {
+  accessToken: string;
+  refreshToken: string;
+};
+
 describe('AuthController (integration)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let redis: RedisService;
 
   beforeAll(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -36,10 +43,17 @@ describe('AuthController (integration)', () => {
     );
 
     prisma = moduleRef.get(PrismaService);
+    redis = moduleRef.get(RedisService);
 
+    await cleanDatabase(prisma);
     await cleanDatabase(prisma);
 
     await app.init();
+  });
+
+  beforeEach(async () => {
+    await cleanDatabase(prisma);
+    await redis.getClient().flushDb();
   });
 
   afterAll(async () => {
@@ -119,5 +133,271 @@ describe('AuthController (integration)', () => {
     });
 
     expect(sessions).toHaveLength(1);
+  });
+
+  it('should refresh an access token using a valid refresh token', async () => {
+    const password = 'Password123!';
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const user = await prisma.user.create({
+      data: {
+        username: 'refresh-user',
+        email: 'refresh@example.com',
+        passwordHash,
+      },
+    });
+
+    const loginResponse = await request(app.getHttpServer() as Server)
+      .post('/auth/login')
+      .send({
+        email: 'refresh@example.com',
+        password,
+      })
+      .expect(201);
+
+    const loginBody = loginResponse.body as LoginResponse;
+
+    const oldRefreshToken = loginBody.refreshToken;
+
+    const oldSession = await prisma.session.findFirst({
+      where: {
+        userId: user.id,
+      },
+    });
+
+    expect(oldSession).not.toBeNull();
+
+    const refreshResponse = await request(app.getHttpServer() as Server)
+      .post('/auth/refresh')
+      .send({
+        refreshToken: oldRefreshToken,
+      })
+      .expect(201);
+
+    const refreshBody = refreshResponse.body as RefreshResponse;
+
+    expect(typeof refreshBody.accessToken).toBe('string');
+    expect(refreshBody.accessToken.split('.')).toHaveLength(3);
+
+    expect(typeof refreshBody.refreshToken).toBe('string');
+    expect(refreshBody.refreshToken).not.toBe(oldRefreshToken);
+
+    const revokedSession = await prisma.session.findUnique({
+      where: {
+        id: oldSession!.id,
+      },
+    });
+
+    expect(revokedSession?.revokedAt).not.toBeNull();
+
+    const sessions = await prisma.session.findMany({
+      where: {
+        userId: user.id,
+      },
+    });
+
+    expect(sessions).toHaveLength(2);
+
+    const activeSessions = sessions.filter(
+      (session) => session.revokedAt === null,
+    );
+
+    expect(activeSessions).toHaveLength(1);
+  });
+
+  it('should reject a reused refresh token', async () => {
+    const password = 'Password123!';
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    await prisma.user.create({
+      data: {
+        username: 'refresh-reuse-user',
+        email: 'refresh-reuse@example.com',
+        passwordHash,
+      },
+    });
+
+    const loginResponse = await request(app.getHttpServer() as Server)
+      .post('/auth/login')
+      .send({
+        email: 'refresh-reuse@example.com',
+        password,
+      })
+      .expect(201);
+
+    const loginBody = loginResponse.body as LoginResponse;
+
+    const oldRefreshToken = loginBody.refreshToken;
+
+    await request(app.getHttpServer() as Server)
+      .post('/auth/refresh')
+      .send({
+        refreshToken: oldRefreshToken,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer() as Server)
+      .post('/auth/refresh')
+      .send({
+        refreshToken: oldRefreshToken,
+      })
+      .expect(401);
+  });
+
+  it('should logout and revoke the current session', async () => {
+    const password = 'Password123!';
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const user = await prisma.user.create({
+      data: {
+        username: 'logout-user',
+        email: 'logout@example.com',
+        passwordHash,
+      },
+    });
+
+    const loginResponse = await request(app.getHttpServer() as Server)
+      .post('/auth/login')
+      .send({
+        email: 'logout@example.com',
+        password,
+      })
+      .expect(201);
+
+    const loginBody = loginResponse.body as LoginResponse;
+
+    const sessionBeforeLogout = await prisma.session.findFirst({
+      where: {
+        userId: user.id,
+      },
+    });
+
+    expect(sessionBeforeLogout).not.toBeNull();
+
+    await request(app.getHttpServer() as Server)
+      .post('/auth/logout')
+      .send({
+        refreshToken: loginBody.refreshToken,
+      })
+      .expect(204);
+
+    const sessionAfterLogout = await prisma.session.findUnique({
+      where: {
+        id: sessionBeforeLogout!.id,
+      },
+    });
+
+    expect(sessionAfterLogout?.revokedAt).not.toBeNull();
+  });
+
+  it('should reject a refresh token after logout', async () => {
+    const password = 'Password123!';
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    await prisma.user.create({
+      data: {
+        username: 'logout-refresh-user',
+        email: 'logout-refresh@example.com',
+        passwordHash,
+      },
+    });
+
+    const loginResponse = await request(app.getHttpServer() as Server)
+      .post('/auth/login')
+      .send({
+        email: 'logout-refresh@example.com',
+        password,
+      })
+      .expect(201);
+
+    const loginBody = loginResponse.body as LoginResponse;
+
+    await request(app.getHttpServer() as Server)
+      .post('/auth/logout')
+      .send({
+        refreshToken: loginBody.refreshToken,
+      })
+      .expect(204);
+
+    await request(app.getHttpServer() as Server)
+      .post('/auth/refresh')
+      .send({
+        refreshToken: loginBody.refreshToken,
+      })
+      .expect(401);
+  });
+
+  it('should revoke all sessions for the authenticated user', async () => {
+    const password = 'Password123!';
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const user = await prisma.user.create({
+      data: {
+        username: 'logout-all-user',
+        email: 'logout-all@example.com',
+        passwordHash,
+      },
+    });
+
+    const firstLoginResponse = await request(app.getHttpServer() as Server)
+      .post('/auth/login')
+      .send({
+        email: 'logout-all@example.com',
+        password,
+      })
+      .expect(201);
+
+    const firstLoginBody = firstLoginResponse.body as LoginResponse;
+
+    const secondLoginResponse = await request(app.getHttpServer() as Server)
+      .post('/auth/login')
+      .send({
+        email: 'logout-all@example.com',
+        password,
+      })
+      .expect(201);
+
+    const secondLoginBody = secondLoginResponse.body as LoginResponse;
+
+    const sessionsBeforeLogout = await prisma.session.findMany({
+      where: {
+        userId: user.id,
+        revokedAt: null,
+      },
+    });
+
+    expect(sessionsBeforeLogout).toHaveLength(2);
+
+    await request(app.getHttpServer() as Server)
+      .post('/auth/logout-all')
+      .set('Authorization', `Bearer ${firstLoginBody.accessToken}`)
+      .expect(204);
+
+    const sessionsAfterLogout = await prisma.session.findMany({
+      where: {
+        userId: user.id,
+      },
+    });
+
+    expect(sessionsAfterLogout).toHaveLength(2);
+
+    const activeSessions = sessionsAfterLogout.filter(
+      (session) => session.revokedAt === null,
+    );
+
+    expect(activeSessions).toHaveLength(0);
+
+    expect(firstLoginBody.refreshToken).not.toBe(secondLoginBody.refreshToken);
+  });
+
+  it('should reject logout-all without authentication', async () => {
+    await request(app.getHttpServer() as Server)
+      .post('/auth/logout-all')
+      .expect(401);
   });
 });
