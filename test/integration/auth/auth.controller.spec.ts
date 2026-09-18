@@ -45,9 +45,6 @@ describe('AuthController (integration)', () => {
     prisma = moduleRef.get(PrismaService);
     redis = moduleRef.get(RedisService);
 
-    await cleanDatabase(prisma);
-    await cleanDatabase(prisma);
-
     await app.init();
   });
 
