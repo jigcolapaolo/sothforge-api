@@ -14,6 +14,14 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://sothforge_test:sothforge_test@localhost:5433/sothforge_test
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: test-secret-for-github-actions
+      JWT_EXPIRES_IN: 15m
+      REFRESH_TOKEN_EXPIRES_IN: 7d
+
     services:
       postgres:
         image: postgres:17-alpine
