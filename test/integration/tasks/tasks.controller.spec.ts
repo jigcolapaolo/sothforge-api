@@ -3,52 +3,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import type { Server } from 'node:http';
 import * as bcrypt from 'bcrypt';
-
 import { AppModule } from 'src/app.module';
 import { PrismaService } from 'src/database/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
-
 import { cleanDatabase } from '../cleanup';
-
-type LoginResponse = {
-  accessToken: string;
-  refreshToken: string;
-  user: {
-    id: string;
-    username: string;
-    email: string;
-  };
-};
-
-type TaskResponse = {
-  id: string;
-  boardId: string;
-  createdById: string;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  dueDate: string | null;
-  estimatedHours: number | null;
-  assignedToId: string | null;
-  createdAt: string;
-  updatedAt: string;
-  labels: {
-    id: string;
-    name: string;
-    color: string;
-  }[];
-};
-
-type TaskListResponse = {
-  data: TaskResponse[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-};
+import type { LoginResponse } from 'test/types/auth.types';
+import type { TaskListResponse, TaskResponse } from 'test/types/task.types';
 
 describe('TasksController (integration)', () => {
   let app: INestApplication;

@@ -7,21 +7,7 @@ import { cleanDatabase } from '../cleanup';
 import * as bcrypt from 'bcrypt';
 import type { Server } from 'node:http';
 import { RedisService } from 'src/redis/redis.service';
-
-type LoginResponse = {
-  accessToken: string;
-  refreshToken: string;
-  user: {
-    id: string;
-    username: string;
-    email: string;
-  };
-};
-
-type RefreshResponse = {
-  accessToken: string;
-  refreshToken: string;
-};
+import type { LoginResponse, RefreshResponse } from 'test/types/auth.types';
 
 describe('AuthController (integration)', () => {
   let app: INestApplication;

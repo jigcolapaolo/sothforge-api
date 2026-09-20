@@ -3,42 +3,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import type { Server } from 'node:http';
 import * as bcrypt from 'bcrypt';
-
 import { AppModule } from 'src/app.module';
 import { PrismaService } from 'src/database/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
-
 import { cleanDatabase } from '../cleanup';
-
-type LoginResponse = {
-  accessToken: string;
-  refreshToken: string;
-  user: {
-    id: string;
-    username: string;
-    email: string;
-  };
-};
-
-type OrganizationResponse = {
-  id: string;
-  name: string;
-  description: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type OrganizationMemberResponse = {
-  id: string;
-  role: string;
-  joinedAt: string;
-  user: {
-    id: string;
-    username: string;
-    email: string;
-    avatar: string | null;
-  };
-};
+import type { LoginResponse } from 'test/types/auth.types';
+import type {
+  OrganizationMemberResponse,
+  OrganizationResponse,
+} from 'test/types/organization.types';
 
 describe('OrganizationsController (integration)', () => {
   let app: INestApplication;

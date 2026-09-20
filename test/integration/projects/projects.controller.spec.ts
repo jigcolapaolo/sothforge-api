@@ -3,33 +3,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import type { Server } from 'node:http';
 import * as bcrypt from 'bcrypt';
-
 import { AppModule } from 'src/app.module';
 import { PrismaService } from 'src/database/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
-
 import { cleanDatabase } from '../cleanup';
-
-type LoginResponse = {
-  accessToken: string;
-  refreshToken: string;
-  user: {
-    id: string;
-    username: string;
-    email: string;
-  };
-};
-
-type ProjectResponse = {
-  id: string;
-  organizationId: string;
-  name: string;
-  description: string | null;
-  startDate: string | null;
-  endDate: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
+import type { LoginResponse } from 'test/types/auth.types';
+import type { ProjectResponse } from 'test/types/project.types';
 
 describe('ProjectsController (integration)', () => {
   let app: INestApplication;
