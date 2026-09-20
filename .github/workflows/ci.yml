@@ -61,7 +61,7 @@ jobs:
         run: npm ci
 
       - name: Generate Prisma Client
-        run: npx prisma generate
+        run: npx prisma generate --config prisma/prisma.config.test.ts
 
       - name: Verify Prisma Client
         run: |
