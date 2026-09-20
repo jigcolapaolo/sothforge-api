@@ -63,9 +63,13 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
+      - name: Verify Prisma Client
+        run: |
+          node -e "const { PrismaClient } = require('./src/generated/prisma/client'); const prisma = new PrismaClient(); console.log('taskLabel:', typeof prisma.taskLabel); console.log('$disconnect:', typeof prisma.$disconnect);"
+
       - name: Apply database migrations
         run: npx prisma migrate deploy --config prisma/prisma.config.test.ts
-
+      
       - name: Run unit tests
         run: npm test -- --runInBand
 
