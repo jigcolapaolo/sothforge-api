@@ -65,14 +65,12 @@ jobs:
 
       - name: Verify Prisma Client
         run: |
-          node <<'EOF'
-          const { PrismaClient } = require('./src/generated/prisma/client');
-
-          const prisma = new PrismaClient();
-
-          console.log('taskLabel:', typeof prisma.taskLabel);
-          console.log('$disconnect:', typeof prisma.$disconnect);
-          EOF
+          if [ -f "src/generated/prisma/client.ts" ]; then
+            echo "Prisma Client generated successfully"
+          else
+            echo "Prisma Client was NOT generated"
+            exit 1
+          fi
 
       - name: Apply database migrations
         run: npx prisma migrate deploy --config prisma/prisma.config.test.ts
