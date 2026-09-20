@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: sothforge_test
+          POSTGRES_PASSWORD: sothforge_test
+          POSTGRES_DB: sothforge_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd="pg_isready -U sothforge_test -d sothforge_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply database migrations
+        run: npx prisma migrate deploy --config prisma/prisma.config.test.ts
+
+      - name: Run unit tests
+        run: npm test -- --runInBand
+
+      - name: Run integration tests
+        run: npm run test:integration -- --runInBand
+
+      - name: Run E2E tests
+        run: npm run test:e2e -- --runInBand
+
+      - name: Build application
+        run: npm run build
