@@ -70,6 +70,7 @@ model User {
   createdTasks  Task[]               @relation("TaskCreator")
   assignedTasks Task[]               @relation("TaskAssignee")
   comments      Comment[]
+  auditLogs     AuditLog[]
 }
 
 model Organization {
@@ -79,9 +80,10 @@ model Organization {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  members  OrganizationMember[]
-  projects Project[]
-  labels   Label[]
+  members   OrganizationMember[]
+  projects  Project[]
+  labels    Label[]
+  auditLogs AuditLog[]
 }
 
 model OrganizationMember {
@@ -97,6 +99,24 @@ model OrganizationMember {
   // Un usuario no puede pertenecer dos veces a la misma organización
   @@unique([userId, organizationId])
   @@index([organizationId])
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  userId         String
+  organizationId String
+  action         String
+  entity         String
+  entityId       String
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([entity, entityId])
+  @@index([userId])
 }
 
 model Project {
