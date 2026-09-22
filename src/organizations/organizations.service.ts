@@ -12,10 +12,15 @@ import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { OrganizationMember } from 'src/generated/prisma/client';
+import { AuditService } from 'src/audit/audit.service';
+import { AuditAction, AuditEntity } from 'src/audit/audit.constants';
 
 @Injectable()
 export class OrganizationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   async create(userId: string, dto: CreateOrganizationDto) {
     return this.prisma.$transaction(async (tx) => {
@@ -33,6 +38,17 @@ export class OrganizationsService {
           role: OrganizationRole.OWNER,
         },
       });
+
+      await this.auditService.create(
+        {
+          userId,
+          organizationId: organization.id,
+          action: AuditAction.ORGANIZATION_CREATED,
+          entity: AuditEntity.ORGANIZATION,
+          entityId: organization.id,
+        },
+        tx,
+      );
 
       return organization;
     });

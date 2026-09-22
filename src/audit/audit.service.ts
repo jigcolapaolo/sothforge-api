@@ -6,15 +6,20 @@ import { Prisma } from 'src/generated/prisma/client';
 export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(data: {
-    userId: string;
-    organizationId: string;
-    action: string;
-    entity: string;
-    entityId: string;
-    metadata?: Prisma.InputJsonValue;
-  }) {
-    return this.prisma.auditLog.create({
+  create(
+    data: {
+      userId: string;
+      organizationId: string;
+      action: string;
+      entity: string;
+      entityId: string;
+      metadata?: Prisma.InputJsonValue;
+    },
+    tx?: Prisma.TransactionClient,
+  ) {
+    const client = tx ?? this.prisma;
+
+    return client.auditLog.create({
       data,
     });
   }
