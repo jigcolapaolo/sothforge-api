@@ -336,6 +336,7 @@ describe('OrganizationsService', () => {
 
   describe('createMember', () => {
     it('should create a new member with the VIEWER role', async () => {
+      const userId = 'user-1';
       const organizationId = 'organization-1';
 
       const dto = {
@@ -359,9 +360,21 @@ describe('OrganizationsService', () => {
       });
 
       prisma.organizationMember.findUnique.mockResolvedValue(null);
-      prisma.organizationMember.create.mockResolvedValue(membership);
 
-      const result = await service.createMember(organizationId, dto);
+      const createMembership = jest.fn().mockResolvedValue(membership);
+
+      const tx = {
+        organizationMember: {
+          create: createMembership,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
+
+      const result = await service.createMember(userId, organizationId, dto);
 
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: {
@@ -381,7 +394,7 @@ describe('OrganizationsService', () => {
         },
       });
 
-      expect(prisma.organizationMember.create).toHaveBeenCalledWith({
+      expect(createMembership).toHaveBeenCalledWith({
         data: {
           userId: dto.userId,
           organizationId,
@@ -412,9 +425,9 @@ describe('OrganizationsService', () => {
 
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.createMember('organization-1', dto)).rejects.toThrow(
-        'User not found',
-      );
+      await expect(
+        service.createMember('user-1', 'organization-1', dto),
+      ).rejects.toThrow('User not found');
 
       expect(prisma.organizationMember.findUnique).not.toHaveBeenCalled();
 
@@ -440,9 +453,9 @@ describe('OrganizationsService', () => {
         joinedAt: new Date(),
       });
 
-      await expect(service.createMember(organizationId, dto)).rejects.toThrow(
-        'User already belongs to this organization.',
-      );
+      await expect(
+        service.createMember('user-1', organizationId, dto),
+      ).rejects.toThrow('User already belongs to this organization.');
 
       expect(prisma.organizationMember.create).not.toHaveBeenCalled();
     });
@@ -509,6 +522,7 @@ describe('OrganizationsService', () => {
 
   describe('updateMemberRole', () => {
     it('should update the role of a member', async () => {
+      const userId = 'user-1';
       const organizationId = 'organization-1';
       const memberUserId = 'user-2';
 
@@ -516,10 +530,18 @@ describe('OrganizationsService', () => {
         role: OrganizationRole.ADMIN,
       };
 
+      const previousMembership = {
+        id: 'membership-1',
+        userId: memberUserId,
+        organizationId,
+        role: OrganizationRole.MEMBER,
+        joinedAt: new Date(),
+      };
+
       const updatedMembership = {
         id: 'membership-1',
         role: OrganizationRole.ADMIN,
-        joinedAt: new Date(),
+        joinedAt: previousMembership.joinedAt,
         user: {
           id: memberUserId,
           username: 'member',
@@ -528,17 +550,25 @@ describe('OrganizationsService', () => {
         },
       };
 
-      prisma.organizationMember.findUnique.mockResolvedValue({
-        id: 'membership-1',
-        userId: memberUserId,
-        organizationId,
-        role: OrganizationRole.MEMBER,
-        joinedAt: new Date(),
-      });
+      prisma.organizationMember.findUnique.mockResolvedValue(
+        previousMembership,
+      );
 
-      prisma.organizationMember.update.mockResolvedValue(updatedMembership);
+      const updateMembership = jest.fn().mockResolvedValue(updatedMembership);
+
+      const tx = {
+        organizationMember: {
+          update: updateMembership,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
 
       const result = await service.updateMemberRole(
+        userId,
         organizationId,
         memberUserId,
         dto,
@@ -553,7 +583,7 @@ describe('OrganizationsService', () => {
         },
       });
 
-      expect(prisma.organizationMember.update).toHaveBeenCalledWith({
+      expect(updateMembership).toHaveBeenCalledWith({
         where: {
           userId_organizationId: {
             userId: memberUserId,
@@ -587,7 +617,7 @@ describe('OrganizationsService', () => {
       };
 
       await expect(
-        service.updateMemberRole('organization-1', 'user-2', dto),
+        service.updateMemberRole('user-1', 'organization-1', 'user-2', dto),
       ).rejects.toThrow(
         'OWNER role can only be assigned through ownership transfer',
       );
@@ -604,7 +634,7 @@ describe('OrganizationsService', () => {
       };
 
       await expect(
-        service.updateMemberRole('organization-1', 'user-2', dto),
+        service.updateMemberRole('user-1', 'organization-1', 'user-2', dto),
       ).rejects.toThrow('User does not belong to this organization');
 
       expect(prisma.organizationMember.update).not.toHaveBeenCalled();
@@ -624,7 +654,7 @@ describe('OrganizationsService', () => {
       };
 
       await expect(
-        service.updateMemberRole('organization-1', 'user-1', dto),
+        service.updateMemberRole('user-1', 'organization-1', 'user-1', dto),
       ).rejects.toThrow(
         'Owner role can only be changed through ownership transfer',
       );
@@ -647,18 +677,28 @@ describe('OrganizationsService', () => {
         joinedAt: new Date(),
       };
 
-      const firstUpdate = Promise.resolve({});
-      const secondUpdate = Promise.resolve({});
-
       prisma.organizationMember.findUnique.mockResolvedValue(
         newOwnerMembership,
       );
 
-      prisma.organizationMember.update
-        .mockReturnValueOnce(firstUpdate)
-        .mockReturnValueOnce(secondUpdate);
+      const firstUpdate = jest.fn().mockResolvedValue({});
+      const secondUpdate = jest.fn().mockResolvedValue({});
 
-      prisma.$transaction.mockResolvedValue([{}, {}]);
+      const updateMembership = jest
+        .fn()
+        .mockImplementationOnce(firstUpdate)
+        .mockImplementationOnce(secondUpdate);
+
+      const tx = {
+        organizationMember: {
+          update: updateMembership,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
 
       await service.transferOwnership(
         currentOwnerId,
@@ -675,7 +715,7 @@ describe('OrganizationsService', () => {
         },
       });
 
-      expect(prisma.organizationMember.update).toHaveBeenNthCalledWith(1, {
+      expect(updateMembership).toHaveBeenNthCalledWith(1, {
         where: {
           userId_organizationId: {
             userId: currentOwnerId,
@@ -687,7 +727,7 @@ describe('OrganizationsService', () => {
         },
       });
 
-      expect(prisma.organizationMember.update).toHaveBeenNthCalledWith(2, {
+      expect(updateMembership).toHaveBeenNthCalledWith(2, {
         where: {
           userId_organizationId: {
             userId: newOwnerId,
@@ -700,10 +740,6 @@ describe('OrganizationsService', () => {
       });
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-      expect(prisma.$transaction).toHaveBeenCalledWith([
-        firstUpdate,
-        secondUpdate,
-      ]);
     });
 
     it('should throw BadRequestException when the new owner is the current owner', async () => {
@@ -743,7 +779,19 @@ describe('OrganizationsService', () => {
       };
 
       prisma.organizationMember.findUnique.mockResolvedValue(membership);
-      prisma.organizationMember.delete.mockResolvedValue(membership);
+
+      const deleteMembership = jest.fn().mockResolvedValue(membership);
+
+      const tx = {
+        organizationMember: {
+          delete: deleteMembership,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
 
       await service.removeMember(organizationId, memberUserId, currentUserId);
 
@@ -756,7 +804,7 @@ describe('OrganizationsService', () => {
         },
       });
 
-      expect(prisma.organizationMember.delete).toHaveBeenCalledWith({
+      expect(deleteMembership).toHaveBeenCalledWith({
         where: {
           userId_organizationId: {
             userId: memberUserId,
@@ -764,6 +812,8 @@ describe('OrganizationsService', () => {
           },
         },
       });
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     });
 
     it('should throw ForbiddenException when trying to remove yourself', async () => {
@@ -816,11 +866,22 @@ describe('OrganizationsService', () => {
         joinedAt: new Date(),
       };
 
-      prisma.organizationMember.delete.mockResolvedValue(membership);
+      const deleteMembership = jest.fn().mockResolvedValue(membership);
+
+      const tx = {
+        organizationMember: {
+          delete: deleteMembership,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
 
       await service.leaveOrganization(organizationId, membership);
 
-      expect(prisma.organizationMember.delete).toHaveBeenCalledWith({
+      expect(deleteMembership).toHaveBeenCalledWith({
         where: {
           userId_organizationId: {
             userId: membership.userId,
@@ -828,6 +889,8 @@ describe('OrganizationsService', () => {
           },
         },
       });
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     });
 
     it('should throw ForbiddenException when the owner tries to leave the organization', async () => {

@@ -168,7 +168,11 @@ export class OrganizationsService {
     });
   }
 
-  async createMember(organizationId: string, dto: CreateMemberDto) {
+  async createMember(
+    userId: string,
+    organizationId: string,
+    dto: CreateMemberDto,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: {
         id: dto.userId,
@@ -195,25 +199,40 @@ export class OrganizationsService {
       throw new ConflictException('User already belongs to this organization.');
     }
 
-    return this.prisma.organizationMember.create({
-      data: {
-        userId: dto.userId,
-        organizationId,
-        role: OrganizationRole.VIEWER,
-      },
-      select: {
-        id: true,
-        role: true,
-        joinedAt: true,
-        user: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            avatar: true,
+    return this.prisma.$transaction(async (tx) => {
+      const membership = await tx.organizationMember.create({
+        data: {
+          userId: dto.userId,
+          organizationId,
+          role: OrganizationRole.VIEWER,
+        },
+        select: {
+          id: true,
+          role: true,
+          joinedAt: true,
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              avatar: true,
+            },
           },
         },
-      },
+      });
+
+      await this.auditService.create(
+        {
+          userId,
+          organizationId,
+          action: AuditAction.MEMBER_ADDED,
+          entity: AuditEntity.ORGANIZATION_MEMBER,
+          entityId: membership.id,
+        },
+        tx,
+      );
+
+      return membership;
     });
   }
 
@@ -242,6 +261,7 @@ export class OrganizationsService {
   }
 
   async updateMemberRole(
+    userId: string,
     organizationId: string,
     memberUserId: string,
     dto: UpdateMemberRoleDto,
@@ -271,29 +291,48 @@ export class OrganizationsService {
       );
     }
 
-    return this.prisma.organizationMember.update({
-      where: {
-        userId_organizationId: {
-          userId: memberUserId,
-          organizationId,
-        },
-      },
-      data: {
-        role: dto.role,
-      },
-      select: {
-        id: true,
-        role: true,
-        joinedAt: true,
-        user: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            avatar: true,
+    return this.prisma.$transaction(async (tx) => {
+      const updatedMembership = await tx.organizationMember.update({
+        where: {
+          userId_organizationId: {
+            userId: memberUserId,
+            organizationId,
           },
         },
-      },
+        data: {
+          role: dto.role,
+        },
+        select: {
+          id: true,
+          role: true,
+          joinedAt: true,
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              avatar: true,
+            },
+          },
+        },
+      });
+
+      await this.auditService.create(
+        {
+          userId,
+          organizationId,
+          action: AuditAction.MEMBER_ROLE_CHANGED,
+          entity: AuditEntity.ORGANIZATION_MEMBER,
+          entityId: updatedMembership.id,
+          metadata: {
+            previousRole: membership.role,
+            newRole: dto.role,
+          },
+        },
+        tx,
+      );
+
+      return updatedMembership;
     });
   }
 
@@ -319,8 +358,8 @@ export class OrganizationsService {
       throw new NotFoundException('User does not belong to this organization');
     }
 
-    await this.prisma.$transaction([
-      this.prisma.organizationMember.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.organizationMember.update({
         where: {
           userId_organizationId: {
             userId: currentOwnerId,
@@ -330,9 +369,9 @@ export class OrganizationsService {
         data: {
           role: OrganizationRole.ADMIN,
         },
-      }),
+      });
 
-      this.prisma.organizationMember.update({
+      await tx.organizationMember.update({
         where: {
           userId_organizationId: {
             userId: newOwnerId,
@@ -342,8 +381,23 @@ export class OrganizationsService {
         data: {
           role: OrganizationRole.OWNER,
         },
-      }),
-    ]);
+      });
+
+      await this.auditService.create(
+        {
+          userId: currentOwnerId,
+          organizationId,
+          action: AuditAction.OWNERSHIP_TRANSFERRED,
+          entity: AuditEntity.ORGANIZATION_MEMBER,
+          entityId: newOwner.id,
+          metadata: {
+            previousOwnerId: currentOwnerId,
+            newOwnerId,
+          },
+        },
+        tx,
+      );
+    });
   }
 
   async removeMember(
@@ -376,13 +430,26 @@ export class OrganizationsService {
       );
     }
 
-    await this.prisma.organizationMember.delete({
-      where: {
-        userId_organizationId: {
-          userId: memberUserId,
-          organizationId,
+    await this.prisma.$transaction(async (tx) => {
+      await tx.organizationMember.delete({
+        where: {
+          userId_organizationId: {
+            userId: memberUserId,
+            organizationId,
+          },
         },
-      },
+      });
+
+      await this.auditService.create(
+        {
+          userId: currentUserId,
+          organizationId,
+          action: AuditAction.MEMBER_REMOVED,
+          entity: AuditEntity.ORGANIZATION_MEMBER,
+          entityId: membership.id,
+        },
+        tx,
+      );
     });
   }
 
@@ -396,13 +463,26 @@ export class OrganizationsService {
       );
     }
 
-    await this.prisma.organizationMember.delete({
-      where: {
-        userId_organizationId: {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.organizationMember.delete({
+        where: {
+          userId_organizationId: {
+            userId: membership.userId,
+            organizationId,
+          },
+        },
+      });
+
+      await this.auditService.create(
+        {
           userId: membership.userId,
           organizationId,
+          action: AuditAction.MEMBER_LEFT,
+          entity: AuditEntity.ORGANIZATION_MEMBER,
+          entityId: membership.id,
         },
-      },
+        tx,
+      );
     });
   }
 }
