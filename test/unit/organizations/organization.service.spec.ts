@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { AuditService } from 'src/audit/audit.service';
 import { PrismaService } from 'src/database/prisma.service';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import { OrganizationsService } from 'src/organizations/organizations.service';
@@ -48,6 +49,12 @@ describe('OrganizationsService', () => {
       providers: [
         OrganizationsService,
         { provide: PrismaService, useValue: prisma },
+        {
+          provide: AuditService,
+          useValue: {
+            create: jest.fn(),
+          },
+        },
       ],
     }).compile();
 

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ProjectsService } from 'src/projects/projects.service';
 import { PrismaService } from 'src/database/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
+import { AuditService } from 'src/audit/audit.service';
 
 describe('ProjectsService', () => {
   let service: ProjectsService;
@@ -49,6 +50,12 @@ describe('ProjectsService', () => {
         {
           provide: RedisService,
           useValue: redis,
+        },
+        {
+          provide: AuditService,
+          useValue: {
+            create: jest.fn(),
+          },
         },
       ],
     }).compile();

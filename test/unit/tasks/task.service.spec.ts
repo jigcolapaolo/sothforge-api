@@ -3,6 +3,7 @@ import { TasksService } from 'src/tasks/tasks.service';
 import { PrismaService } from 'src/database/prisma.service';
 import { AuthorizationService } from 'src/common/authorization/authorization.service';
 import { TaskPriority, TaskStatus } from 'src/generated/prisma/enums';
+import { AuditService } from 'src/audit/audit.service';
 
 describe('TasksService', () => {
   let service: TasksService;
@@ -48,6 +49,12 @@ describe('TasksService', () => {
         {
           provide: AuthorizationService,
           useValue: authorizationService,
+        },
+        {
+          provide: AuditService,
+          useValue: {
+            create: jest.fn(),
+          },
         },
       ],
     }).compile();
