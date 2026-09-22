@@ -117,22 +117,54 @@ export class OrganizationsService {
     };
   }
 
-  async update(organizationId: string, dto: UpdateOrganizationDto) {
-    return this.prisma.organization.update({
-      where: {
-        id: organizationId,
-      },
-      data: {
-        ...dto,
-      },
+  async update(
+    userId: string,
+    organizationId: string,
+    dto: UpdateOrganizationDto,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const organization = await tx.organization.update({
+        where: {
+          id: organizationId,
+        },
+        data: {
+          ...dto,
+        },
+      });
+
+      await this.auditService.create(
+        {
+          userId,
+          organizationId,
+          action: AuditAction.ORGANIZATION_UPDATED,
+          entity: AuditEntity.ORGANIZATION,
+          entityId: organizationId,
+        },
+        tx,
+      );
+
+      return organization;
     });
   }
 
-  async remove(organizationId: string) {
-    await this.prisma.organization.delete({
-      where: {
-        id: organizationId,
-      },
+  async remove(userId: string, organizationId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.auditService.create(
+        {
+          userId,
+          organizationId,
+          action: AuditAction.ORGANIZATION_DELETED,
+          entity: AuditEntity.ORGANIZATION,
+          entityId: organizationId,
+        },
+        tx,
+      );
+
+      await tx.organization.delete({
+        where: {
+          id: organizationId,
+        },
+      });
     });
   }
 

@@ -104,7 +104,7 @@ model OrganizationMember {
 model AuditLog {
   id             String   @id @default(uuid())
   userId         String
-  organizationId String
+  organizationId String?
   action         String
   entity         String
   entityId       String
@@ -112,7 +112,7 @@ model AuditLog {
   createdAt      DateTime @default(now())
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, createdAt])
   @@index([entity, entityId])

@@ -134,10 +134,11 @@ export class OrganizationsController {
   @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
   @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
   update(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('organizationId') organizationId: string,
     @Body() dto: UpdateOrganizationDto,
   ) {
-    return this.organizationsService.update(organizationId, dto);
+    return this.organizationsService.update(user.userId, organizationId, dto);
   }
 
   @ApiOperation({ summary: 'Delete an organization' })
@@ -163,8 +164,11 @@ export class OrganizationsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
   @Roles(OrganizationRole.OWNER)
-  remove(@Param('organizationId') organizationId: string) {
-    return this.organizationsService.remove(organizationId);
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('organizationId') organizationId: string,
+  ) {
+    return this.organizationsService.remove(user.userId, organizationId);
   }
 
   // Members

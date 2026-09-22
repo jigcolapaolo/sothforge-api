@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuditService } from 'src/audit/audit.service';
 import { PrismaService } from 'src/database/prisma.service';
+import { Prisma } from 'src/generated/prisma/client';
 import { OrganizationRole } from 'src/generated/prisma/enums';
 import { OrganizationsService } from 'src/organizations/organizations.service';
 
@@ -257,6 +258,7 @@ describe('OrganizationsService', () => {
 
   describe('update', () => {
     it('should update an organization', async () => {
+      const userId = 'user-1';
       const organizationId = 'organization-1';
 
       const dto = {
@@ -272,11 +274,24 @@ describe('OrganizationsService', () => {
         updatedAt: new Date(),
       };
 
-      prisma.organization.update.mockResolvedValue(updatedOrganization);
+      const updateOrganization = jest
+        .fn()
+        .mockResolvedValue(updatedOrganization);
 
-      const result = await service.update(organizationId, dto);
+      const tx = {
+        organization: {
+          update: updateOrganization,
+        },
+      } as unknown as Prisma.TransactionClient;
 
-      expect(prisma.organization.update).toHaveBeenCalledWith({
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
+
+      const result = await service.update(userId, organizationId, dto);
+
+      expect(updateOrganization).toHaveBeenCalledWith({
         where: {
           id: organizationId,
         },
@@ -291,15 +306,27 @@ describe('OrganizationsService', () => {
 
   describe('remove', () => {
     it('should delete an organization', async () => {
+      const userId = 'user-1';
       const organizationId = 'organization-1';
 
-      prisma.organization.delete.mockResolvedValue({
+      const deleteOrganization = jest.fn().mockResolvedValue({
         id: organizationId,
       });
 
-      await service.remove(organizationId);
+      const tx = {
+        organization: {
+          delete: deleteOrganization,
+        },
+      } as unknown as Prisma.TransactionClient;
 
-      expect(prisma.organization.delete).toHaveBeenCalledWith({
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
+
+      await service.remove(userId, organizationId);
+
+      expect(deleteOrganization).toHaveBeenCalledWith({
         where: {
           id: organizationId,
         },
