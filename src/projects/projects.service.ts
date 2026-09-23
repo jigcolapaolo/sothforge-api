@@ -3,23 +3,41 @@ import { PrismaService } from 'src/database/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { RedisService } from 'src/redis/redis.service';
+import { AuditService } from 'src/audit/audit.service';
+import { AuditAction, AuditEntity } from 'src/audit/audit.constants';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
+    private readonly auditService: AuditService,
   ) {}
 
-  async create(organizationId: string, dto: CreateProjectDto) {
-    const project = this.prisma.project.create({
-      data: {
-        organizationId,
-        name: dto.name,
-        description: dto.description,
-        startDate: dto.startDate ? new Date(dto.startDate) : undefined,
-        endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-      },
+  async create(userId: string, organizationId: string, dto: CreateProjectDto) {
+    const project = await this.prisma.$transaction(async (tx) => {
+      const createdProject = await tx.project.create({
+        data: {
+          organizationId,
+          name: dto.name,
+          description: dto.description,
+          startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+          endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+        },
+      });
+
+      await this.auditService.create(
+        {
+          userId,
+          organizationId,
+          action: AuditAction.PROJECT_CREATED,
+          entity: AuditEntity.PROJECT,
+          entityId: createdProject.id,
+        },
+        tx,
+      );
+
+      return createdProject;
     });
 
     await this.redis.delete(`projects:${organizationId}`);
@@ -64,7 +82,7 @@ export class ProjectsService {
     return project;
   }
 
-  async update(projectId: string, dto: UpdateProjectDto) {
+  async update(userId: string, projectId: string, dto: UpdateProjectDto) {
     const project = await this.prisma.project.findFirst({
       where: {
         id: projectId,
@@ -75,15 +93,30 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
 
-    const updatedProject = this.prisma.project.update({
-      where: {
-        id: projectId,
-      },
-      data: {
-        ...dto,
-        startDate: dto.startDate ? new Date(dto.startDate) : undefined,
-        endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-      },
+    const updatedProject = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.project.update({
+        where: {
+          id: projectId,
+        },
+        data: {
+          ...dto,
+          startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+          endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+        },
+      });
+
+      await this.auditService.create(
+        {
+          userId,
+          organizationId: project.organizationId,
+          action: AuditAction.PROJECT_UPDATED,
+          entity: AuditEntity.PROJECT,
+          entityId: projectId,
+        },
+        tx,
+      );
+
+      return updated;
     });
 
     await this.redis.delete(`projects:${project.organizationId}`);
@@ -91,7 +124,7 @@ export class ProjectsService {
     return updatedProject;
   }
 
-  async remove(projectId: string) {
+  async remove(userId: string, projectId: string) {
     const project = await this.prisma.project.findFirst({
       where: {
         id: projectId,
@@ -102,10 +135,23 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
 
-    await this.prisma.project.delete({
-      where: {
-        id: projectId,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await this.auditService.create(
+        {
+          userId,
+          organizationId: project.organizationId,
+          action: AuditAction.PROJECT_DELETED,
+          entity: AuditEntity.PROJECT,
+          entityId: projectId,
+        },
+        tx,
+      );
+
+      await tx.project.delete({
+        where: {
+          id: projectId,
+        },
+      });
     });
 
     await this.redis.delete(`projects:${project.organizationId}`);

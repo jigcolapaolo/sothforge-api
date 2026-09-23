@@ -8,6 +8,7 @@ import { OrganizationsModule } from 'src/organizations/organizations.module';
 import { AuthorizationModule } from 'src/common/authorization/authorization.module';
 import { OrganizationProjectsController } from './controllers/organization-projects.controller';
 import { RedisModule } from 'src/redis/redis.module';
+import { AuditModule } from 'src/audit/audit.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { RedisModule } from 'src/redis/redis.module';
     OrganizationsModule,
     AuthorizationModule,
     RedisModule,
+    AuditModule,
   ],
   controllers: [OrganizationProjectsController, ProjectsController],
   providers: [ProjectsService, ProjectGuard],

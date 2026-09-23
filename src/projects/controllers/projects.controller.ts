@@ -23,6 +23,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ProjectGuard } from '../guards/project.guard';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
 
 @ApiTags('Projects')
 @ApiBearerAuth()
@@ -54,8 +56,12 @@ export class ProjectsController {
   @Patch(':projectId')
   @UseGuards(JwtAuthGuard, ProjectGuard, RolesGuard)
   @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
-  update(@Param('projectId') projectId: string, @Body() dto: UpdateProjectDto) {
-    return this.projectsService.update(projectId, dto);
+  update(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('projectId') projectId: string,
+    @Body() dto: UpdateProjectDto,
+  ) {
+    return this.projectsService.update(user.userId, projectId, dto);
   }
 
   @ApiOperation({ summary: 'Delete a project' })
@@ -72,7 +78,10 @@ export class ProjectsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard, ProjectGuard, RolesGuard)
   @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
-  remove(@Param('projectId') projectId: string) {
-    return this.projectsService.remove(projectId);
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('projectId') projectId: string,
+  ) {
+    return this.projectsService.remove(user.userId, projectId);
   }
 }
