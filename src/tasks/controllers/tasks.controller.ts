@@ -29,6 +29,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
 
 @ApiTags('Tasks')
 @ApiBearerAuth()
@@ -65,8 +67,12 @@ export class TasksController {
     OrganizationRole.ADMIN,
     OrganizationRole.MEMBER,
   )
-  update(@Param('taskId') taskId: string, @Body() dto: UpdateTaskDto) {
-    return this.tasksService.update(taskId, dto);
+  update(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('taskId') taskId: string,
+    @Body() dto: UpdateTaskDto,
+  ) {
+    return this.tasksService.update(user.userId, taskId, dto);
   }
 
   @ApiOperation({ summary: 'Delete a task' })
@@ -87,8 +93,11 @@ export class TasksController {
     OrganizationRole.ADMIN,
     OrganizationRole.MEMBER,
   )
-  remove(@Param('taskId') taskId: string) {
-    return this.tasksService.remove(taskId);
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('taskId') taskId: string,
+  ) {
+    return this.tasksService.remove(user.userId, taskId);
   }
 
   @ApiOperation({ summary: 'Assign a user to a task' })
@@ -113,11 +122,13 @@ export class TasksController {
     OrganizationRole.MEMBER,
   )
   assignTask(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('taskId') taskId: string,
     @Req() request: AuthenticatedRequest,
     @Body() dto: AssignTaskDto,
   ) {
     return this.tasksService.assignTask(
+      user.userId,
       taskId,
       request.resourceOrganizationId!,
       dto,
@@ -141,8 +152,11 @@ export class TasksController {
     OrganizationRole.ADMIN,
     OrganizationRole.MEMBER,
   )
-  removeAssignee(@Param('taskId') taskId: string) {
-    return this.tasksService.removeAssignee(taskId);
+  removeAssignee(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('taskId') taskId: string,
+  ) {
+    return this.tasksService.removeAssignee(user.userId, taskId);
   }
 
   @ApiOperation({ summary: 'Update task status' })
@@ -164,10 +178,11 @@ export class TasksController {
     OrganizationRole.MEMBER,
   )
   updateStatus(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('taskId') taskId: string,
     @Body() dto: UpdateTaskStatusDto,
   ) {
-    return this.tasksService.updateStatus(taskId, dto);
+    return this.tasksService.updateStatus(user.userId, taskId, dto);
   }
 
   @ApiOperation({ summary: 'Update task priority' })
@@ -192,9 +207,10 @@ export class TasksController {
     OrganizationRole.MEMBER,
   )
   updatePriority(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('taskId') taskId: string,
     @Body() dto: UpdateTaskPriorityDto,
   ) {
-    return this.tasksService.updatePriority(taskId, dto);
+    return this.tasksService.updatePriority(user.userId, taskId, dto);
   }
 }
