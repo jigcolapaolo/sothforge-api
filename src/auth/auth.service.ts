@@ -122,17 +122,32 @@ export class AuthService {
       .update(refreshToken)
       .digest('hex');
 
-    const session = await this.prisma.session.findFirst({
+    const session = await this.prisma.session.findUnique({
       where: {
         refreshTokenHash,
-        revokedAt: null,
-        expiresAt: {
-          gt: new Date(),
-        },
       },
     });
 
     if (!session) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    // Revoca todas las sesiones activas al detectar reutilización de un refresh token.
+    if (session.revokedAt) {
+      await this.prisma.session.updateMany({
+        where: {
+          userId: session.userId,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      });
+
+      throw new UnauthorizedException('Refresh token reuse detected');
+    }
+
+    if (session.expiresAt <= new Date()) {
       throw new UnauthorizedException('Invalid refresh token');
     }
 

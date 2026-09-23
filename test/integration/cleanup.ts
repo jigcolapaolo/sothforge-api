@@ -12,5 +12,6 @@ export async function cleanDatabase(prisma: PrismaService): Promise<void> {
     prisma.session.deleteMany(),
     prisma.organization.deleteMany(),
     prisma.user.deleteMany(),
+    prisma.auditLog.deleteMany(),
   ]);
 }

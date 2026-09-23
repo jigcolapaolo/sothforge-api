@@ -7,9 +7,16 @@ import { BoardsModule } from 'src/boards/boards.module';
 import { AuthorizationModule } from 'src/common/authorization/authorization.module';
 import { TaskGuard } from './guards/task.guard';
 import { BoardTasksController } from './controllers/board-tasks.controller';
+import { AuditModule } from 'src/audit/audit.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, BoardsModule, AuthorizationModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    BoardsModule,
+    AuthorizationModule,
+    AuditModule,
+  ],
   controllers: [BoardTasksController, TasksController],
   providers: [TasksService, TaskGuard],
 })

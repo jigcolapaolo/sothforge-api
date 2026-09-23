@@ -3,11 +3,14 @@ import { TasksService } from 'src/tasks/tasks.service';
 import { PrismaService } from 'src/database/prisma.service';
 import { AuthorizationService } from 'src/common/authorization/authorization.service';
 import { TaskPriority, TaskStatus } from 'src/generated/prisma/enums';
+import { AuditService } from 'src/audit/audit.service';
+import { Prisma } from 'src/generated/prisma/client';
 
 describe('TasksService', () => {
   let service: TasksService;
 
   let prisma: {
+    $transaction: jest.Mock;
     task: {
       create: jest.Mock;
       findMany: jest.Mock;
@@ -24,6 +27,7 @@ describe('TasksService', () => {
 
   beforeEach(async () => {
     prisma = {
+      $transaction: jest.fn(),
       task: {
         create: jest.fn(),
         findMany: jest.fn(),
@@ -48,6 +52,12 @@ describe('TasksService', () => {
         {
           provide: AuthorizationService,
           useValue: authorizationService,
+        },
+        {
+          provide: AuditService,
+          useValue: {
+            create: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -85,7 +95,18 @@ describe('TasksService', () => {
         assignedToId: undefined,
       };
 
-      prisma.task.create.mockResolvedValue(task);
+      const createTask = jest.fn().mockResolvedValue(task);
+
+      const tx = {
+        task: {
+          create: createTask,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
 
       const result = await service.create(
         boardId,
@@ -98,7 +119,7 @@ describe('TasksService', () => {
         authorizationService.getOrganizationMembership,
       ).not.toHaveBeenCalled();
 
-      expect(prisma.task.create).toHaveBeenCalledWith({
+      expect(createTask).toHaveBeenCalledWith({
         data: {
           boardId,
           createdById,
@@ -144,7 +165,18 @@ describe('TasksService', () => {
         membership,
       );
 
-      prisma.task.create.mockResolvedValue(task);
+      const createTask = jest.fn().mockResolvedValue(task);
+
+      const tx = {
+        task: {
+          create: createTask,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
 
       const result = await service.create(
         boardId,
@@ -157,7 +189,7 @@ describe('TasksService', () => {
         authorizationService.getOrganizationMembership,
       ).toHaveBeenCalledWith(dto.assignedToId, organizationId);
 
-      expect(prisma.task.create).toHaveBeenCalled();
+      expect(createTask).toHaveBeenCalled();
 
       expect(result).toEqual(task);
     });
@@ -460,11 +492,18 @@ describe('TasksService', () => {
 
   describe('update', () => {
     it('should update a task with a new due date', async () => {
+      const userId = 'user-1';
       const taskId = 'task-1';
+      const organizationId = 'organization-1';
 
       const existingTask = {
         id: taskId,
         title: 'Old title',
+        board: {
+          project: {
+            organizationId,
+          },
+        },
       };
 
       const dto = {
@@ -483,17 +522,40 @@ describe('TasksService', () => {
       };
 
       prisma.task.findFirst.mockResolvedValue(existingTask);
-      prisma.task.update.mockResolvedValue(updatedTask);
 
-      const result = await service.update(taskId, dto);
+      const updateTask = jest.fn().mockResolvedValue(updatedTask);
+
+      const tx = {
+        task: {
+          update: updateTask,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
+
+      const result = await service.update(userId, taskId, dto);
 
       expect(prisma.task.findFirst).toHaveBeenCalledWith({
         where: {
           id: taskId,
         },
+        include: {
+          board: {
+            include: {
+              project: {
+                select: {
+                  organizationId: true,
+                },
+              },
+            },
+          },
+        },
       });
 
-      expect(prisma.task.update).toHaveBeenCalledWith({
+      expect(updateTask).toHaveBeenCalledWith({
         where: {
           id: taskId,
         },
@@ -509,11 +571,18 @@ describe('TasksService', () => {
     });
 
     it('should clear the due date when dueDate is null', async () => {
+      const userId = 'user-1';
       const taskId = 'task-1';
+      const organizationId = 'organization-1';
 
       const existingTask = {
         id: taskId,
         title: 'Task',
+        board: {
+          project: {
+            organizationId,
+          },
+        },
       };
 
       const dto = {
@@ -527,11 +596,23 @@ describe('TasksService', () => {
       };
 
       prisma.task.findFirst.mockResolvedValue(existingTask);
-      prisma.task.update.mockResolvedValue(updatedTask);
 
-      const result = await service.update(taskId, dto);
+      const updateTask = jest.fn().mockResolvedValue(updatedTask);
 
-      expect(prisma.task.update).toHaveBeenCalledWith({
+      const tx = {
+        task: {
+          update: updateTask,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
+
+      const result = await service.update(userId, taskId, dto);
+
+      expect(updateTask).toHaveBeenCalledWith({
         where: {
           id: taskId,
         },
@@ -550,36 +631,67 @@ describe('TasksService', () => {
       prisma.task.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.update('task-1', {
+        service.update('user-1', 'task-1', {
           title: 'Updated title',
         }),
       ).rejects.toThrow('Task not found');
 
       expect(prisma.task.update).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
     });
   });
 
   describe('remove', () => {
     it('should remove an existing task', async () => {
+      const userId = 'user-1';
       const taskId = 'task-1';
+      const organizationId = 'organization-1';
 
       const task = {
         id: taskId,
         title: 'Task to delete',
+        board: {
+          project: {
+            organizationId,
+          },
+        },
       };
 
       prisma.task.findFirst.mockResolvedValue(task);
-      prisma.task.delete.mockResolvedValue(task);
 
-      const result = await service.remove(taskId);
+      const deleteTask = jest.fn().mockResolvedValue(task);
+
+      const tx = {
+        task: {
+          delete: deleteTask,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
+
+      const result = await service.remove(userId, taskId);
 
       expect(prisma.task.findFirst).toHaveBeenCalledWith({
         where: {
           id: taskId,
         },
+        include: {
+          board: {
+            include: {
+              project: {
+                select: {
+                  organizationId: true,
+                },
+              },
+            },
+          },
+        },
       });
 
-      expect(prisma.task.delete).toHaveBeenCalledWith({
+      expect(deleteTask).toHaveBeenCalledWith({
         where: {
           id: taskId,
         },
@@ -591,14 +703,18 @@ describe('TasksService', () => {
     it('should throw NotFoundException when the task does not exist', async () => {
       prisma.task.findFirst.mockResolvedValue(null);
 
-      await expect(service.remove('task-1')).rejects.toThrow('Task not found');
+      await expect(service.remove('user-1', 'task-1')).rejects.toThrow(
+        'Task not found',
+      );
 
       expect(prisma.task.delete).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
     });
   });
 
   describe('assignTask', () => {
     it('should assign a task to a user who belongs to the organization', async () => {
+      const userId = 'user-1';
       const taskId = 'task-1';
       const organizationId = 'organization-1';
 
@@ -623,15 +739,31 @@ describe('TasksService', () => {
         membership,
       );
 
-      prisma.task.update.mockResolvedValue(updatedTask);
+      const updateTask = jest.fn().mockResolvedValue(updatedTask);
 
-      const result = await service.assignTask(taskId, organizationId, dto);
+      const tx = {
+        task: {
+          update: updateTask,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
+
+      const result = await service.assignTask(
+        userId,
+        taskId,
+        organizationId,
+        dto,
+      );
 
       expect(
         authorizationService.getOrganizationMembership,
       ).toHaveBeenCalledWith(dto.userId, organizationId);
 
-      expect(prisma.task.update).toHaveBeenCalledWith({
+      expect(updateTask).toHaveBeenCalledWith({
         where: {
           id: taskId,
         },
@@ -644,6 +776,7 @@ describe('TasksService', () => {
     });
 
     it('should throw ForbiddenException when the user does not belong to the organization', async () => {
+      const userId = 'user-1';
       const taskId = 'task-1';
       const organizationId = 'organization-1';
 
@@ -654,27 +787,68 @@ describe('TasksService', () => {
       authorizationService.getOrganizationMembership.mockResolvedValue(null);
 
       await expect(
-        service.assignTask(taskId, organizationId, dto),
+        service.assignTask(userId, taskId, organizationId, dto),
       ).rejects.toThrow('Assigned user does not belong to this organization');
 
       expect(prisma.task.update).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
     });
   });
 
   describe('removeAssignee', () => {
     it('should remove the current assignee from a task', async () => {
+      const userId = 'user-1';
       const taskId = 'task-1';
+      const organizationId = 'organization-1';
 
-      const updatedTask = {
+      const task = {
         id: taskId,
-        assignedToId: null,
+        assignedToId: 'user-2',
+        board: {
+          project: {
+            organizationId,
+          },
+        },
       };
 
-      prisma.task.update.mockResolvedValue(updatedTask);
+      prisma.task.findFirst.mockResolvedValue(task);
 
-      const result = await service.removeAssignee(taskId);
+      const updateTask = jest.fn().mockResolvedValue({
+        id: taskId,
+        assignedToId: null,
+      });
 
-      expect(prisma.task.update).toHaveBeenCalledWith({
+      const tx = {
+        task: {
+          update: updateTask,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
+
+      const result = await service.removeAssignee(userId, taskId);
+
+      expect(prisma.task.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: taskId,
+        },
+        include: {
+          board: {
+            include: {
+              project: {
+                select: {
+                  organizationId: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      expect(updateTask).toHaveBeenCalledWith({
         where: {
           id: taskId,
         },
@@ -685,14 +859,37 @@ describe('TasksService', () => {
 
       expect(result).toBeUndefined();
     });
+
+    it('should throw NotFoundException when the task does not exist', async () => {
+      prisma.task.findFirst.mockResolvedValue(null);
+
+      await expect(service.removeAssignee('user-1', 'task-1')).rejects.toThrow(
+        'Task not found',
+      );
+
+      expect(prisma.task.findFirst).toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
   });
 
   describe('updateStatus', () => {
     it('should update the task status', async () => {
+      const userId = 'user-1';
       const taskId = 'task-1';
+      const organizationId = 'organization-1';
 
       const dto = {
         status: TaskStatus.DONE,
+      };
+
+      const task = {
+        id: taskId,
+        status: TaskStatus.IN_PROGRESS,
+        board: {
+          project: {
+            organizationId,
+          },
+        },
       };
 
       const updatedTask = {
@@ -700,11 +897,41 @@ describe('TasksService', () => {
         status: dto.status,
       };
 
-      prisma.task.update.mockResolvedValue(updatedTask);
+      prisma.task.findFirst.mockResolvedValue(task);
 
-      const result = await service.updateStatus(taskId, dto);
+      const updateTask = jest.fn().mockResolvedValue(updatedTask);
 
-      expect(prisma.task.update).toHaveBeenCalledWith({
+      const tx = {
+        task: {
+          update: updateTask,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
+
+      const result = await service.updateStatus(userId, taskId, dto);
+
+      expect(prisma.task.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: taskId,
+        },
+        include: {
+          board: {
+            include: {
+              project: {
+                select: {
+                  organizationId: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      expect(updateTask).toHaveBeenCalledWith({
         where: {
           id: taskId,
         },
@@ -715,14 +942,39 @@ describe('TasksService', () => {
 
       expect(result).toEqual(updatedTask);
     });
+
+    it('should throw NotFoundException when the task does not exist', async () => {
+      prisma.task.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.updateStatus('user-1', 'task-1', {
+          status: TaskStatus.DONE,
+        }),
+      ).rejects.toThrow('Task not found');
+
+      expect(prisma.task.findFirst).toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
   });
 
   describe('updatePriority', () => {
     it('should update the task priority', async () => {
+      const userId = 'user-1';
       const taskId = 'task-1';
+      const organizationId = 'organization-1';
 
       const dto = {
         priority: TaskPriority.URGENT,
+      };
+
+      const task = {
+        id: taskId,
+        priority: TaskPriority.MEDIUM,
+        board: {
+          project: {
+            organizationId,
+          },
+        },
       };
 
       const updatedTask = {
@@ -730,11 +982,41 @@ describe('TasksService', () => {
         priority: dto.priority,
       };
 
-      prisma.task.update.mockResolvedValue(updatedTask);
+      prisma.task.findFirst.mockResolvedValue(task);
 
-      const result = await service.updatePriority(taskId, dto);
+      const updateTask = jest.fn().mockResolvedValue(updatedTask);
 
-      expect(prisma.task.update).toHaveBeenCalledWith({
+      const tx = {
+        task: {
+          update: updateTask,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
+
+      const result = await service.updatePriority(userId, taskId, dto);
+
+      expect(prisma.task.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: taskId,
+        },
+        include: {
+          board: {
+            include: {
+              project: {
+                select: {
+                  organizationId: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      expect(updateTask).toHaveBeenCalledWith({
         where: {
           id: taskId,
         },
@@ -744,6 +1026,72 @@ describe('TasksService', () => {
       });
 
       expect(result).toEqual(updatedTask);
+    });
+
+    it('should update the task without creating an audit log when the priority is unchanged', async () => {
+      const userId = 'user-1';
+      const taskId = 'task-1';
+      const organizationId = 'organization-1';
+
+      const dto = {
+        priority: TaskPriority.URGENT,
+      };
+
+      const task = {
+        id: taskId,
+        priority: TaskPriority.URGENT,
+        board: {
+          project: {
+            organizationId,
+          },
+        },
+      };
+
+      const updatedTask = {
+        id: taskId,
+        priority: dto.priority,
+      };
+
+      prisma.task.findFirst.mockResolvedValue(task);
+
+      const updateTask = jest.fn().mockResolvedValue(updatedTask);
+
+      const tx = {
+        task: {
+          update: updateTask,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
+
+      const result = await service.updatePriority(userId, taskId, dto);
+
+      expect(updateTask).toHaveBeenCalledWith({
+        where: {
+          id: taskId,
+        },
+        data: {
+          priority: dto.priority,
+        },
+      });
+
+      expect(result).toEqual(updatedTask);
+    });
+
+    it('should throw NotFoundException when the task does not exist', async () => {
+      prisma.task.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.updatePriority('user-1', 'task-1', {
+          priority: TaskPriority.URGENT,
+        }),
+      ).rejects.toThrow('Task not found');
+
+      expect(prisma.task.findFirst).toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
     });
   });
 });

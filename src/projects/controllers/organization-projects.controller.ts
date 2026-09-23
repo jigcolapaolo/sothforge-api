@@ -13,6 +13,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from 'src/auth/types/authenticated-user';
 
 @ApiTags('Projects')
 @ApiBearerAuth()
@@ -34,10 +36,11 @@ export class OrganizationProjectsController {
   @UseGuards(JwtAuthGuard, OrganizationGuard, RolesGuard)
   @Roles(OrganizationRole.OWNER, OrganizationRole.ADMIN)
   create(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('organizationId') organizationId: string,
     @Body() dto: CreateProjectDto,
   ) {
-    return this.projectsService.create(organizationId, dto);
+    return this.projectsService.create(user.userId, organizationId, dto);
   }
 
   @ApiOperation({ summary: 'Get organization projects' })

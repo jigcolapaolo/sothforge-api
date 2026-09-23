@@ -5,9 +5,10 @@ import { PrismaModule } from 'src/database/prisma.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { OrganizationGuard } from './guards/organization.guard';
 import { AuthorizationModule } from 'src/common/authorization/authorization.module';
+import { AuditModule } from 'src/audit/audit.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, AuthorizationModule],
+  imports: [PrismaModule, AuthModule, AuthorizationModule, AuditModule],
   controllers: [OrganizationsController],
   providers: [OrganizationsService, OrganizationGuard],
   exports: [OrganizationGuard],

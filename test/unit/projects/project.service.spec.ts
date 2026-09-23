@@ -2,11 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ProjectsService } from 'src/projects/projects.service';
 import { PrismaService } from 'src/database/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
+import { AuditService } from 'src/audit/audit.service';
+import { Prisma } from 'src/generated/prisma/client';
 
 describe('ProjectsService', () => {
   let service: ProjectsService;
 
   let prisma: {
+    $transaction: jest.Mock;
     project: {
       create: jest.Mock;
       findMany: jest.Mock;
@@ -24,6 +27,7 @@ describe('ProjectsService', () => {
 
   beforeEach(async () => {
     prisma = {
+      $transaction: jest.fn(),
       project: {
         create: jest.fn(),
         findMany: jest.fn(),
@@ -50,6 +54,12 @@ describe('ProjectsService', () => {
           provide: RedisService,
           useValue: redis,
         },
+        {
+          provide: AuditService,
+          useValue: {
+            create: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -62,6 +72,7 @@ describe('ProjectsService', () => {
 
   describe('create', () => {
     it('should create a project and invalidate the organization cache', async () => {
+      const userId = 'user-1';
       const organizationId = 'organization-1';
 
       const dto = {
@@ -80,12 +91,24 @@ describe('ProjectsService', () => {
         endDate: new Date(dto.endDate),
       };
 
-      prisma.project.create.mockResolvedValue(project);
+      const createProject = jest.fn().mockResolvedValue(project);
+
+      const tx = {
+        project: {
+          create: createProject,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
+
       redis.delete.mockResolvedValue(undefined);
 
-      const result = await service.create(organizationId, dto);
+      const result = await service.create(userId, organizationId, dto);
 
-      expect(prisma.project.create).toHaveBeenCalledWith({
+      expect(createProject).toHaveBeenCalledWith({
         data: {
           organizationId,
           name: dto.name,
@@ -101,6 +124,7 @@ describe('ProjectsService', () => {
     });
 
     it('should allow optional dates to be undefined', async () => {
+      const userId = 'user-1';
       const organizationId = 'organization-1';
 
       const dto = {
@@ -116,12 +140,24 @@ describe('ProjectsService', () => {
         endDate: undefined,
       };
 
-      prisma.project.create.mockResolvedValue(project);
+      const createProject = jest.fn().mockResolvedValue(project);
+
+      const tx = {
+        project: {
+          create: createProject,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
+
       redis.delete.mockResolvedValue(undefined);
 
-      const result = await service.create(organizationId, dto);
+      const result = await service.create(userId, organizationId, dto);
 
-      expect(prisma.project.create).toHaveBeenCalledWith({
+      expect(createProject).toHaveBeenCalledWith({
         data: {
           organizationId,
           name: dto.name,
@@ -239,6 +275,7 @@ describe('ProjectsService', () => {
 
   describe('update', () => {
     it('should update a project and invalidate the organization cache', async () => {
+      const userId = 'user-1';
       const projectId = 'project-1';
       const organizationId = 'organization-1';
 
@@ -265,10 +302,23 @@ describe('ProjectsService', () => {
       };
 
       prisma.project.findFirst.mockResolvedValue(existingProject);
-      prisma.project.update.mockResolvedValue(updatedProject);
+
+      const updateProject = jest.fn().mockResolvedValue(updatedProject);
+
+      const tx = {
+        project: {
+          update: updateProject,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
+
       redis.delete.mockResolvedValue(undefined);
 
-      const result = await service.update(projectId, dto);
+      const result = await service.update(userId, projectId, dto);
 
       expect(prisma.project.findFirst).toHaveBeenCalledWith({
         where: {
@@ -276,7 +326,7 @@ describe('ProjectsService', () => {
         },
       });
 
-      expect(prisma.project.update).toHaveBeenCalledWith({
+      expect(updateProject).toHaveBeenCalledWith({
         where: {
           id: projectId,
         },
@@ -296,18 +346,20 @@ describe('ProjectsService', () => {
       prisma.project.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.update('project-1', {
+        service.update('user-1', 'project-1', {
           name: 'Updated Project',
         }),
       ).rejects.toThrow('Project not found');
 
       expect(prisma.project.update).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
       expect(redis.delete).not.toHaveBeenCalled();
     });
   });
 
   describe('remove', () => {
     it('should delete a project and invalidate the organization cache', async () => {
+      const userId = 'user-1';
       const projectId = 'project-1';
       const organizationId = 'organization-1';
 
@@ -318,10 +370,23 @@ describe('ProjectsService', () => {
       };
 
       prisma.project.findFirst.mockResolvedValue(project);
-      prisma.project.delete.mockResolvedValue(project);
+
+      const deleteProject = jest.fn().mockResolvedValue(project);
+
+      const tx = {
+        project: {
+          delete: deleteProject,
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+          callback(tx),
+      );
+
       redis.delete.mockResolvedValue(undefined);
 
-      await service.remove(projectId);
+      await service.remove(userId, projectId);
 
       expect(prisma.project.findFirst).toHaveBeenCalledWith({
         where: {
@@ -329,7 +394,7 @@ describe('ProjectsService', () => {
         },
       });
 
-      expect(prisma.project.delete).toHaveBeenCalledWith({
+      expect(deleteProject).toHaveBeenCalledWith({
         where: {
           id: projectId,
         },
@@ -341,11 +406,12 @@ describe('ProjectsService', () => {
     it('should throw NotFoundException when the project does not exist', async () => {
       prisma.project.findFirst.mockResolvedValue(null);
 
-      await expect(service.remove('project-1')).rejects.toThrow(
+      await expect(service.remove('user-1', 'project-1')).rejects.toThrow(
         'Project not found',
       );
 
       expect(prisma.project.delete).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
       expect(redis.delete).not.toHaveBeenCalled();
     });
   });

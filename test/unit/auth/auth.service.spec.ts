@@ -21,6 +21,7 @@ describe('AuthService', () => {
     session: {
       create: jest.Mock;
       findFirst: jest.Mock;
+      findUnique: jest.Mock;
       update: jest.Mock;
       updateMany: jest.Mock;
     };
@@ -46,6 +47,7 @@ describe('AuthService', () => {
       session: {
         create: jest.fn(),
         findFirst: jest.fn(),
+        findUnique: jest.fn(),
         update: jest.fn(),
         updateMany: jest.fn(),
       },
@@ -310,7 +312,7 @@ describe('AuthService', () => {
         email: 'john@example.com',
       };
 
-      prisma.session.findFirst.mockResolvedValue(session);
+      prisma.session.findUnique.mockResolvedValue(session);
       prisma.user.findUnique.mockResolvedValue(user);
 
       jwtService.signAsync.mockResolvedValue('new-access-token');
@@ -340,15 +342,10 @@ describe('AuthService', () => {
       expect(result.accessToken).toBe('new-access-token');
       expect(result.refreshToken).toEqual(expect.any(String));
 
-      expect(prisma.session.findFirst).toHaveBeenCalledWith({
+      expect(prisma.session.findUnique).toHaveBeenCalledWith({
         where: {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           refreshTokenHash: expect.any(String),
-          revokedAt: null,
-          expiresAt: {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            gt: expect.any(Date),
-          },
         },
       });
 
@@ -366,13 +363,47 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException when refresh token is invalid', async () => {
-      prisma.session.findFirst.mockResolvedValue(null);
+      prisma.session.findUnique.mockResolvedValue(null);
 
       await expect(service.refresh('invalid-refresh-token')).rejects.toThrow(
         'Invalid refresh token',
       );
 
-      expect(prisma.session.findFirst).toHaveBeenCalledTimes(1);
+      expect(prisma.session.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.user.findUnique).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('should detect refresh token reuse and revoke all active sessions', async () => {
+      const revokedSession = {
+        id: 'session-id',
+        userId: 'user-id',
+        refreshTokenHash: 'old-refresh-token-hash',
+        expiresAt: new Date('2030-01-01'),
+        revokedAt: new Date('2030-01-02'),
+      };
+
+      prisma.session.findUnique.mockResolvedValue(revokedSession);
+
+      prisma.session.updateMany.mockResolvedValue({
+        count: 2,
+      });
+
+      await expect(service.refresh('old-refresh-token')).rejects.toThrow(
+        'Refresh token reuse detected',
+      );
+
+      expect(prisma.session.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-id',
+          revokedAt: null,
+        },
+        data: {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          revokedAt: expect.any(Date),
+        },
+      });
+
       expect(prisma.user.findUnique).not.toHaveBeenCalled();
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
@@ -386,7 +417,7 @@ describe('AuthService', () => {
         revokedAt: null,
       };
 
-      prisma.session.findFirst.mockResolvedValue(session);
+      prisma.session.findUnique.mockResolvedValue(session);
       prisma.user.findUnique.mockResolvedValue(null);
 
       await expect(service.refresh('old-refresh-token')).rejects.toThrow(
@@ -403,6 +434,26 @@ describe('AuthService', () => {
         },
       });
 
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException when refresh token is expired', async () => {
+      const expiredSession = {
+        id: 'session-id',
+        userId: 'user-id',
+        refreshTokenHash: 'expired-refresh-token-hash',
+        expiresAt: new Date('2020-01-01'),
+        revokedAt: null,
+      };
+
+      prisma.session.findUnique.mockResolvedValue(expiredSession);
+
+      await expect(service.refresh('expired-refresh-token')).rejects.toThrow(
+        'Invalid refresh token',
+      );
+
+      expect(prisma.user.findUnique).not.toHaveBeenCalled();
+      expect(prisma.session.updateMany).not.toHaveBeenCalled();
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
   });

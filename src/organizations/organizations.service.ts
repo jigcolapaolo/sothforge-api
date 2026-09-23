@@ -12,10 +12,15 @@ import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { OrganizationMember } from 'src/generated/prisma/client';
+import { AuditService } from 'src/audit/audit.service';
+import { AuditAction, AuditEntity } from 'src/audit/audit.constants';
 
 @Injectable()
 export class OrganizationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   async create(userId: string, dto: CreateOrganizationDto) {
     return this.prisma.$transaction(async (tx) => {
@@ -33,6 +38,17 @@ export class OrganizationsService {
           role: OrganizationRole.OWNER,
         },
       });
+
+      await this.auditService.create(
+        {
+          userId,
+          organizationId: organization.id,
+          action: AuditAction.ORGANIZATION_CREATED,
+          entity: AuditEntity.ORGANIZATION,
+          entityId: organization.id,
+        },
+        tx,
+      );
 
       return organization;
     });
@@ -101,26 +117,62 @@ export class OrganizationsService {
     };
   }
 
-  async update(organizationId: string, dto: UpdateOrganizationDto) {
-    return this.prisma.organization.update({
-      where: {
-        id: organizationId,
-      },
-      data: {
-        ...dto,
-      },
+  async update(
+    userId: string,
+    organizationId: string,
+    dto: UpdateOrganizationDto,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const organization = await tx.organization.update({
+        where: {
+          id: organizationId,
+        },
+        data: {
+          ...dto,
+        },
+      });
+
+      await this.auditService.create(
+        {
+          userId,
+          organizationId,
+          action: AuditAction.ORGANIZATION_UPDATED,
+          entity: AuditEntity.ORGANIZATION,
+          entityId: organizationId,
+        },
+        tx,
+      );
+
+      return organization;
     });
   }
 
-  async remove(organizationId: string) {
-    await this.prisma.organization.delete({
-      where: {
-        id: organizationId,
-      },
+  async remove(userId: string, organizationId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.auditService.create(
+        {
+          userId,
+          organizationId,
+          action: AuditAction.ORGANIZATION_DELETED,
+          entity: AuditEntity.ORGANIZATION,
+          entityId: organizationId,
+        },
+        tx,
+      );
+
+      await tx.organization.delete({
+        where: {
+          id: organizationId,
+        },
+      });
     });
   }
 
-  async createMember(organizationId: string, dto: CreateMemberDto) {
+  async createMember(
+    userId: string,
+    organizationId: string,
+    dto: CreateMemberDto,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: {
         id: dto.userId,
@@ -147,25 +199,40 @@ export class OrganizationsService {
       throw new ConflictException('User already belongs to this organization.');
     }
 
-    return this.prisma.organizationMember.create({
-      data: {
-        userId: dto.userId,
-        organizationId,
-        role: OrganizationRole.VIEWER,
-      },
-      select: {
-        id: true,
-        role: true,
-        joinedAt: true,
-        user: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            avatar: true,
+    return this.prisma.$transaction(async (tx) => {
+      const membership = await tx.organizationMember.create({
+        data: {
+          userId: dto.userId,
+          organizationId,
+          role: OrganizationRole.VIEWER,
+        },
+        select: {
+          id: true,
+          role: true,
+          joinedAt: true,
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              avatar: true,
+            },
           },
         },
-      },
+      });
+
+      await this.auditService.create(
+        {
+          userId,
+          organizationId,
+          action: AuditAction.MEMBER_ADDED,
+          entity: AuditEntity.ORGANIZATION_MEMBER,
+          entityId: membership.id,
+        },
+        tx,
+      );
+
+      return membership;
     });
   }
 
@@ -194,6 +261,7 @@ export class OrganizationsService {
   }
 
   async updateMemberRole(
+    userId: string,
     organizationId: string,
     memberUserId: string,
     dto: UpdateMemberRoleDto,
@@ -223,29 +291,48 @@ export class OrganizationsService {
       );
     }
 
-    return this.prisma.organizationMember.update({
-      where: {
-        userId_organizationId: {
-          userId: memberUserId,
-          organizationId,
-        },
-      },
-      data: {
-        role: dto.role,
-      },
-      select: {
-        id: true,
-        role: true,
-        joinedAt: true,
-        user: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            avatar: true,
+    return this.prisma.$transaction(async (tx) => {
+      const updatedMembership = await tx.organizationMember.update({
+        where: {
+          userId_organizationId: {
+            userId: memberUserId,
+            organizationId,
           },
         },
-      },
+        data: {
+          role: dto.role,
+        },
+        select: {
+          id: true,
+          role: true,
+          joinedAt: true,
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              avatar: true,
+            },
+          },
+        },
+      });
+
+      await this.auditService.create(
+        {
+          userId,
+          organizationId,
+          action: AuditAction.MEMBER_ROLE_CHANGED,
+          entity: AuditEntity.ORGANIZATION_MEMBER,
+          entityId: updatedMembership.id,
+          metadata: {
+            previousRole: membership.role,
+            newRole: dto.role,
+          },
+        },
+        tx,
+      );
+
+      return updatedMembership;
     });
   }
 
@@ -271,8 +358,8 @@ export class OrganizationsService {
       throw new NotFoundException('User does not belong to this organization');
     }
 
-    await this.prisma.$transaction([
-      this.prisma.organizationMember.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.organizationMember.update({
         where: {
           userId_organizationId: {
             userId: currentOwnerId,
@@ -282,9 +369,9 @@ export class OrganizationsService {
         data: {
           role: OrganizationRole.ADMIN,
         },
-      }),
+      });
 
-      this.prisma.organizationMember.update({
+      await tx.organizationMember.update({
         where: {
           userId_organizationId: {
             userId: newOwnerId,
@@ -294,8 +381,23 @@ export class OrganizationsService {
         data: {
           role: OrganizationRole.OWNER,
         },
-      }),
-    ]);
+      });
+
+      await this.auditService.create(
+        {
+          userId: currentOwnerId,
+          organizationId,
+          action: AuditAction.OWNERSHIP_TRANSFERRED,
+          entity: AuditEntity.ORGANIZATION_MEMBER,
+          entityId: newOwner.id,
+          metadata: {
+            previousOwnerId: currentOwnerId,
+            newOwnerId,
+          },
+        },
+        tx,
+      );
+    });
   }
 
   async removeMember(
@@ -328,13 +430,26 @@ export class OrganizationsService {
       );
     }
 
-    await this.prisma.organizationMember.delete({
-      where: {
-        userId_organizationId: {
-          userId: memberUserId,
-          organizationId,
+    await this.prisma.$transaction(async (tx) => {
+      await tx.organizationMember.delete({
+        where: {
+          userId_organizationId: {
+            userId: memberUserId,
+            organizationId,
+          },
         },
-      },
+      });
+
+      await this.auditService.create(
+        {
+          userId: currentUserId,
+          organizationId,
+          action: AuditAction.MEMBER_REMOVED,
+          entity: AuditEntity.ORGANIZATION_MEMBER,
+          entityId: membership.id,
+        },
+        tx,
+      );
     });
   }
 
@@ -348,13 +463,26 @@ export class OrganizationsService {
       );
     }
 
-    await this.prisma.organizationMember.delete({
-      where: {
-        userId_organizationId: {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.organizationMember.delete({
+        where: {
+          userId_organizationId: {
+            userId: membership.userId,
+            organizationId,
+          },
+        },
+      });
+
+      await this.auditService.create(
+        {
           userId: membership.userId,
           organizationId,
+          action: AuditAction.MEMBER_LEFT,
+          entity: AuditEntity.ORGANIZATION_MEMBER,
+          entityId: membership.id,
         },
-      },
+        tx,
+      );
     });
   }
 }
